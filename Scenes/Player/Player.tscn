@@ -1,0 +1,763 @@
+[gd_scene load_steps=20 format=2]
+
+[ext_resource path="res://Scenes/CameraGimbal/CameraGimbal.tscn" type="PackedScene" id=1]
+[ext_resource path="res://Scenes/Player/Player.gd" type="Script" id=2]
+
+[sub_resource type="CapsuleMesh" id=7]
+
+[sub_resource type="Shader" id=8]
+code = "/* Toon Shader */
+
+shader_type spatial;
+
+render_mode ambient_light_disabled;
+
+uniform bool use_texture = true;
+uniform vec4 albedo : hint_color = vec4(0.0f);
+uniform sampler2D albedo_texture : hint_albedo;
+
+uniform bool shade = true;
+uniform vec4 shade_color : hint_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+uniform float shade_strength : hint_range(0.0f, 1.0f) = 0.5f;
+uniform float shade_bias : hint_range(-1.0f, 1.0f) = 0.01f;
+
+uniform bool specular = true;
+uniform vec4 specular_color : hint_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+uniform float specular_strength : hint_range(0.0f, 1.0f) = 1.0f;
+uniform float specular_bias : hint_range(0.0f, 1.0f) = 0.9f;
+
+uniform sampler2D noise;
+uniform float height_scale : hint_range(0.0f, 3.5f) = 0.5f;
+
+void vertex() {
+
+}
+
+void fragment() {
+	if (use_texture) {
+		ALBEDO = albedo.rgb + texture(albedo_texture, UV).rgb;
+	} else {
+		ALBEDO = albedo.rgb;
+	}
+}
+
+void light() {
+	DIFFUSE_LIGHT = ALBEDO.rgb;
+	//SPECULAR_LIGHT = vec3(0.0f);
+	
+	/* Diffuse */
+	if (shade){
+		// init diffuse variables
+		float inv_shade_strength = 1.0 - shade_strength;
+		float NdotL = dot(NORMAL, LIGHT);
+		float light_intensity = step(shade_bias, NdotL);
+		light_intensity = NdotL > shade_bias ? 1.0 : inv_shade_strength;
+
+		// mix ablebo with shade color weighted by light intensity
+		vec3 out_diffuse_color = mix(shade_color.rgb, ALBEDO.rgb, vec3(light_intensity));
+		
+		// output diffuse
+		DIFFUSE_LIGHT = out_diffuse_color;
+		
+	}
+	
+	/* Specular */
+	if (specular) {
+		// init Specular variables
+		vec3 n = normalize(NORMAL); // normalize normal vector
+		float s = dot(-LIGHT, n); // calc vector scale factor for n
+		vec3 N = s * n; // direction of normal and length of projected point of light source
+
+		// calculate projection vector
+		vec3 P = LIGHT + N; // light vector projected onto normal vector
+		
+		// calcuate reflection vector
+		vec3 R = N + P; // reflection vector is angle between normal and projected vector
+		
+		// calculate vector from fragment to camera
+		vec3 to_camera = -1.0 * VIEW;
+		//vec3 to_camera = VIEW;
+		
+		// calculate the cosine of the angle between the reflection vector and view vector
+		R = normalize(R);
+		to_camera = normalize(to_camera);
+		float cos_angle = dot(R, to_camera);
+		cos_angle = clamp(cos_angle, 0.0, 1.0);
+		
+		// determine specular intensity
+		float specular_intensity = cos_angle < specular_bias ? 1.0 : 0.0;
+		
+		// mix diffuse_out with highlight color weighted by specular intensity
+		vec3 highlight_color = specular_color.rgb;
+		vec3 mixed_highlight_color = mix(specular_color.rgb * specular_strength, DIFFUSE_LIGHT,  vec3(specular_intensity));
+		vec3 object_color = DIFFUSE_LIGHT;
+		vec3 out_specular_color = specular_intensity < 1.0 ? mixed_highlight_color : object_color;
+		
+		// output specular
+		SPECULAR_LIGHT = out_specular_color;
+		
+	}
+}"
+
+[sub_resource type="ShaderMaterial" id=9]
+shader = SubResource( 8 )
+shader_param/use_texture = false
+shader_param/albedo = Color( 0.364706, 0.156863, 0, 1 )
+shader_param/shade = true
+shader_param/shade_color = Color( 0, 0, 0, 1 )
+shader_param/shade_strength = 0.5
+shader_param/shade_bias = 0.01
+shader_param/specular = false
+shader_param/specular_color = Color( 1, 1, 1, 1 )
+shader_param/specular_strength = 1.0
+shader_param/specular_bias = 0.9
+shader_param/height_scale = 0.5
+
+[sub_resource type="CubeMesh" id=10]
+size = Vector3( 1, 1, 0.5 )
+
+[sub_resource type="SpatialMaterial" id=1]
+albedo_color = Color( 0, 0, 0, 1 )
+
+[sub_resource type="SpatialMaterial" id=2]
+albedo_color = Color( 0, 0, 0, 1 )
+
+[sub_resource type="Shader" id=5]
+code = "/* Toon Shader */
+
+shader_type spatial;
+
+render_mode ambient_light_disabled;
+
+uniform bool use_texture = true;
+uniform vec4 albedo : hint_color = vec4(0.0f);
+uniform sampler2D albedo_texture : hint_albedo;
+
+uniform bool shade = true;
+uniform vec4 shade_color : hint_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+uniform float shade_strength : hint_range(0.0f, 1.0f) = 0.5f;
+uniform float shade_bias : hint_range(-1.0f, 1.0f) = 0.01f;
+
+uniform bool specular = true;
+uniform vec4 specular_color : hint_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+uniform float specular_strength : hint_range(0.0f, 1.0f) = 1.0f;
+uniform float specular_bias : hint_range(0.0f, 1.0f) = 0.9f;
+
+uniform sampler2D noise;
+uniform float height_scale : hint_range(0.0f, 3.5f) = 0.5f;
+
+void vertex() {
+
+}
+
+void fragment() {
+	if (use_texture) {
+		ALBEDO = albedo.rgb + texture(albedo_texture, UV).rgb;
+	} else {
+		ALBEDO = albedo.rgb;
+	}
+}
+
+void light() {
+	DIFFUSE_LIGHT = ALBEDO.rgb;
+	//SPECULAR_LIGHT = vec3(0.0f);
+	
+	/* Diffuse */
+	if (shade){
+		// init diffuse variables
+		float inv_shade_strength = 1.0 - shade_strength;
+		float NdotL = dot(NORMAL, LIGHT);
+		float light_intensity = step(shade_bias, NdotL);
+		light_intensity = NdotL > shade_bias ? 1.0 : inv_shade_strength;
+
+		// mix ablebo with shade color weighted by light intensity
+		vec3 out_diffuse_color = mix(shade_color.rgb, ALBEDO.rgb, vec3(light_intensity));
+		
+		// output diffuse
+		DIFFUSE_LIGHT = out_diffuse_color;
+		
+	}
+	
+	/* Specular */
+	if (specular) {
+		// init Specular variables
+		vec3 n = normalize(NORMAL); // normalize normal vector
+		float s = dot(-LIGHT, n); // calc vector scale factor for n
+		vec3 N = s * n; // direction of normal and length of projected point of light source
+
+		// calculate projection vector
+		vec3 P = LIGHT + N; // light vector projected onto normal vector
+		
+		// calcuate reflection vector
+		vec3 R = N + P; // reflection vector is angle between normal and projected vector
+		
+		// calculate vector from fragment to camera
+		vec3 to_camera = -1.0 * VIEW;
+		//vec3 to_camera = VIEW;
+		
+		// calculate the cosine of the angle between the reflection vector and view vector
+		R = normalize(R);
+		to_camera = normalize(to_camera);
+		float cos_angle = dot(R, to_camera);
+		cos_angle = clamp(cos_angle, 0.0, 1.0);
+		
+		// determine specular intensity
+		float specular_intensity = cos_angle < specular_bias ? 1.0 : 0.0;
+		
+		// mix diffuse_out with highlight color weighted by specular intensity
+		vec3 highlight_color = specular_color.rgb;
+		vec3 mixed_highlight_color = mix(specular_color.rgb * specular_strength, DIFFUSE_LIGHT,  vec3(specular_intensity));
+		vec3 object_color = DIFFUSE_LIGHT;
+		vec3 out_specular_color = specular_intensity < 1.0 ? mixed_highlight_color : object_color;
+		
+		// output specular
+		SPECULAR_LIGHT = out_specular_color;
+		
+	}
+}"
+
+[sub_resource type="ShaderMaterial" id=6]
+shader = SubResource( 5 )
+shader_param/use_texture = false
+shader_param/albedo = Color( 0.541176, 0.313726, 0.184314, 1 )
+shader_param/shade = true
+shader_param/shade_color = Color( 0, 0, 0, 1 )
+shader_param/shade_strength = 0.5
+shader_param/shade_bias = 0.01
+shader_param/specular = false
+shader_param/specular_color = Color( 1, 1, 1, 1 )
+shader_param/specular_strength = 1.0
+shader_param/specular_bias = 0.9
+shader_param/height_scale = 0.5
+
+[sub_resource type="Shader" id=3]
+code = "/* Toon Shader */
+
+shader_type spatial;
+
+render_mode ambient_light_disabled;
+
+uniform bool use_texture = true;
+uniform vec4 albedo : hint_color = vec4(0.0f);
+uniform sampler2D albedo_texture : hint_albedo;
+
+uniform bool shade = true;
+uniform vec4 shade_color : hint_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+uniform float shade_strength : hint_range(0.0f, 1.0f) = 0.5f;
+uniform float shade_bias : hint_range(-1.0f, 1.0f) = 0.01f;
+
+uniform bool specular = true;
+uniform vec4 specular_color : hint_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+uniform float specular_strength : hint_range(0.0f, 1.0f) = 1.0f;
+uniform float specular_bias : hint_range(0.0f, 1.0f) = 0.9f;
+
+uniform sampler2D noise;
+uniform float height_scale : hint_range(0.0f, 3.5f) = 0.5f;
+
+void vertex() {
+
+}
+
+void fragment() {
+	if (use_texture) {
+		ALBEDO = albedo.rgb + texture(albedo_texture, UV).rgb;
+	} else {
+		ALBEDO = albedo.rgb;
+	}
+}
+
+void light() {
+	DIFFUSE_LIGHT = ALBEDO.rgb;
+	//SPECULAR_LIGHT = vec3(0.0f);
+	
+	/* Diffuse */
+	if (shade){
+		// init diffuse variables
+		float inv_shade_strength = 1.0 - shade_strength;
+		float NdotL = dot(NORMAL, LIGHT);
+		float light_intensity = step(shade_bias, NdotL);
+		light_intensity = NdotL > shade_bias ? 1.0 : inv_shade_strength;
+
+		// mix ablebo with shade color weighted by light intensity
+		vec3 out_diffuse_color = mix(shade_color.rgb, ALBEDO.rgb, vec3(light_intensity));
+		
+		// output diffuse
+		DIFFUSE_LIGHT = out_diffuse_color;
+		
+	}
+	
+	/* Specular */
+	if (specular) {
+		// init Specular variables
+		vec3 n = normalize(NORMAL); // normalize normal vector
+		float s = dot(-LIGHT, n); // calc vector scale factor for n
+		vec3 N = s * n; // direction of normal and length of projected point of light source
+
+		// calculate projection vector
+		vec3 P = LIGHT + N; // light vector projected onto normal vector
+		
+		// calcuate reflection vector
+		vec3 R = N + P; // reflection vector is angle between normal and projected vector
+		
+		// calculate vector from fragment to camera
+		vec3 to_camera = -1.0 * VIEW;
+		//vec3 to_camera = VIEW;
+		
+		// calculate the cosine of the angle between the reflection vector and view vector
+		R = normalize(R);
+		to_camera = normalize(to_camera);
+		float cos_angle = dot(R, to_camera);
+		cos_angle = clamp(cos_angle, 0.0, 1.0);
+		
+		// determine specular intensity
+		float specular_intensity = cos_angle < specular_bias ? 1.0 : 0.0;
+		
+		// mix diffuse_out with highlight color weighted by specular intensity
+		vec3 highlight_color = specular_color.rgb;
+		vec3 mixed_highlight_color = mix(specular_color.rgb * specular_strength, DIFFUSE_LIGHT,  vec3(specular_intensity));
+		vec3 object_color = DIFFUSE_LIGHT;
+		vec3 out_specular_color = specular_intensity < 1.0 ? mixed_highlight_color : object_color;
+		
+		// output specular
+		SPECULAR_LIGHT = out_specular_color;
+		
+	}
+}"
+
+[sub_resource type="ShaderMaterial" id=4]
+shader = SubResource( 3 )
+shader_param/use_texture = false
+shader_param/albedo = Color( 0.541176, 0.313726, 0.184314, 1 )
+shader_param/shade = true
+shader_param/shade_color = Color( 0, 0, 0, 1 )
+shader_param/shade_strength = 0.5
+shader_param/shade_bias = 0.01
+shader_param/specular = false
+shader_param/specular_color = Color( 1, 1, 1, 1 )
+shader_param/specular_strength = 1.0
+shader_param/specular_bias = 0.9
+shader_param/height_scale = 0.5
+
+[sub_resource type="Shader" id=12]
+code = "/* Toon Shader */
+
+shader_type spatial;
+
+render_mode ambient_light_disabled;
+
+uniform bool use_texture = true;
+uniform vec4 albedo : hint_color = vec4(0.0f);
+uniform sampler2D albedo_texture : hint_albedo;
+
+uniform bool shade = true;
+uniform vec4 shade_color : hint_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+uniform float shade_strength : hint_range(0.0f, 1.0f) = 0.5f;
+uniform float shade_bias : hint_range(-1.0f, 1.0f) = 0.01f;
+
+uniform bool specular = true;
+uniform vec4 specular_color : hint_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+uniform float specular_strength : hint_range(0.0f, 1.0f) = 1.0f;
+uniform float specular_bias : hint_range(0.0f, 1.0f) = 0.9f;
+
+uniform sampler2D noise;
+uniform float height_scale : hint_range(0.0f, 3.5f) = 0.5f;
+
+void vertex() {
+
+}
+
+void fragment() {
+	if (use_texture) {
+		ALBEDO = albedo.rgb + texture(albedo_texture, UV).rgb;
+	} else {
+		ALBEDO = albedo.rgb;
+	}
+}
+
+void light() {
+	DIFFUSE_LIGHT = ALBEDO.rgb;
+	//SPECULAR_LIGHT = vec3(0.0f);
+	
+	/* Diffuse */
+	if (shade){
+		// init diffuse variables
+		float inv_shade_strength = 1.0 - shade_strength;
+		float NdotL = dot(NORMAL, LIGHT);
+		float light_intensity = step(shade_bias, NdotL);
+		light_intensity = NdotL > shade_bias ? 1.0 : inv_shade_strength;
+
+		// mix ablebo with shade color weighted by light intensity
+		vec3 out_diffuse_color = mix(shade_color.rgb, ALBEDO.rgb, vec3(light_intensity));
+		
+		// output diffuse
+		DIFFUSE_LIGHT = out_diffuse_color;
+		
+	}
+	
+	/* Specular */
+	if (specular) {
+		// init Specular variables
+		vec3 n = normalize(NORMAL); // normalize normal vector
+		float s = dot(-LIGHT, n); // calc vector scale factor for n
+		vec3 N = s * n; // direction of normal and length of projected point of light source
+
+		// calculate projection vector
+		vec3 P = LIGHT + N; // light vector projected onto normal vector
+		
+		// calcuate reflection vector
+		vec3 R = N + P; // reflection vector is angle between normal and projected vector
+		
+		// calculate vector from fragment to camera
+		vec3 to_camera = -1.0 * VIEW;
+		//vec3 to_camera = VIEW;
+		
+		// calculate the cosine of the angle between the reflection vector and view vector
+		R = normalize(R);
+		to_camera = normalize(to_camera);
+		float cos_angle = dot(R, to_camera);
+		cos_angle = clamp(cos_angle, 0.0, 1.0);
+		
+		// determine specular intensity
+		float specular_intensity = cos_angle < specular_bias ? 1.0 : 0.0;
+		
+		// mix diffuse_out with highlight color weighted by specular intensity
+		vec3 highlight_color = specular_color.rgb;
+		vec3 mixed_highlight_color = mix(specular_color.rgb * specular_strength, DIFFUSE_LIGHT,  vec3(specular_intensity));
+		vec3 object_color = DIFFUSE_LIGHT;
+		vec3 out_specular_color = specular_intensity < 1.0 ? mixed_highlight_color : object_color;
+		
+		// output specular
+		SPECULAR_LIGHT = out_specular_color;
+		
+	}
+}"
+
+[sub_resource type="ShaderMaterial" id=13]
+shader = SubResource( 12 )
+shader_param/use_texture = false
+shader_param/albedo = Color( 0.541176, 0.313726, 0.184314, 1 )
+shader_param/shade = true
+shader_param/shade_color = Color( 0, 0, 0, 1 )
+shader_param/shade_strength = 0.5
+shader_param/shade_bias = 0.01
+shader_param/specular = false
+shader_param/specular_color = Color( 1, 1, 1, 1 )
+shader_param/specular_strength = 1.0
+shader_param/specular_bias = 0.9
+shader_param/height_scale = 0.5
+
+[sub_resource type="Shader" id=14]
+code = "/* Toon Shader */
+
+shader_type spatial;
+
+render_mode ambient_light_disabled;
+
+uniform bool use_texture = true;
+uniform vec4 albedo : hint_color = vec4(0.0f);
+uniform sampler2D albedo_texture : hint_albedo;
+
+uniform bool shade = true;
+uniform vec4 shade_color : hint_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+uniform float shade_strength : hint_range(0.0f, 1.0f) = 0.5f;
+uniform float shade_bias : hint_range(-1.0f, 1.0f) = 0.01f;
+
+uniform bool specular = true;
+uniform vec4 specular_color : hint_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+uniform float specular_strength : hint_range(0.0f, 1.0f) = 1.0f;
+uniform float specular_bias : hint_range(0.0f, 1.0f) = 0.9f;
+
+uniform sampler2D noise;
+uniform float height_scale : hint_range(0.0f, 3.5f) = 0.5f;
+
+void vertex() {
+
+}
+
+void fragment() {
+	if (use_texture) {
+		ALBEDO = albedo.rgb + texture(albedo_texture, UV).rgb;
+	} else {
+		ALBEDO = albedo.rgb;
+	}
+}
+
+void light() {
+	DIFFUSE_LIGHT = ALBEDO.rgb;
+	//SPECULAR_LIGHT = vec3(0.0f);
+	
+	/* Diffuse */
+	if (shade){
+		// init diffuse variables
+		float inv_shade_strength = 1.0 - shade_strength;
+		float NdotL = dot(NORMAL, LIGHT);
+		float light_intensity = step(shade_bias, NdotL);
+		light_intensity = NdotL > shade_bias ? 1.0 : inv_shade_strength;
+
+		// mix ablebo with shade color weighted by light intensity
+		vec3 out_diffuse_color = mix(shade_color.rgb, ALBEDO.rgb, vec3(light_intensity));
+		
+		// output diffuse
+		DIFFUSE_LIGHT = out_diffuse_color;
+		
+	}
+	
+	/* Specular */
+	if (specular) {
+		// init Specular variables
+		vec3 n = normalize(NORMAL); // normalize normal vector
+		float s = dot(-LIGHT, n); // calc vector scale factor for n
+		vec3 N = s * n; // direction of normal and length of projected point of light source
+
+		// calculate projection vector
+		vec3 P = LIGHT + N; // light vector projected onto normal vector
+		
+		// calcuate reflection vector
+		vec3 R = N + P; // reflection vector is angle between normal and projected vector
+		
+		// calculate vector from fragment to camera
+		vec3 to_camera = -1.0 * VIEW;
+		//vec3 to_camera = VIEW;
+		
+		// calculate the cosine of the angle between the reflection vector and view vector
+		R = normalize(R);
+		to_camera = normalize(to_camera);
+		float cos_angle = dot(R, to_camera);
+		cos_angle = clamp(cos_angle, 0.0, 1.0);
+		
+		// determine specular intensity
+		float specular_intensity = cos_angle < specular_bias ? 1.0 : 0.0;
+		
+		// mix diffuse_out with highlight color weighted by specular intensity
+		vec3 highlight_color = specular_color.rgb;
+		vec3 mixed_highlight_color = mix(specular_color.rgb * specular_strength, DIFFUSE_LIGHT,  vec3(specular_intensity));
+		vec3 object_color = DIFFUSE_LIGHT;
+		vec3 out_specular_color = specular_intensity < 1.0 ? mixed_highlight_color : object_color;
+		
+		// output specular
+		SPECULAR_LIGHT = out_specular_color;
+		
+	}
+}"
+
+[sub_resource type="ShaderMaterial" id=15]
+shader = SubResource( 14 )
+shader_param/use_texture = false
+shader_param/albedo = Color( 0.541176, 0.313726, 0.184314, 1 )
+shader_param/shade = true
+shader_param/shade_color = Color( 0, 0, 0, 1 )
+shader_param/shade_strength = 0.5
+shader_param/shade_bias = 0.01
+shader_param/specular = false
+shader_param/specular_color = Color( 1, 1, 1, 1 )
+shader_param/specular_strength = 1.0
+shader_param/specular_bias = 0.9
+shader_param/height_scale = 0.5
+
+[sub_resource type="Shader" id=16]
+code = "/* Toon Shader */
+
+shader_type spatial;
+
+render_mode ambient_light_disabled;
+
+uniform bool use_texture = true;
+uniform vec4 albedo : hint_color = vec4(0.0f);
+uniform sampler2D albedo_texture : hint_albedo;
+
+uniform bool shade = true;
+uniform vec4 shade_color : hint_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+uniform float shade_strength : hint_range(0.0f, 1.0f) = 0.5f;
+uniform float shade_bias : hint_range(-1.0f, 1.0f) = 0.01f;
+
+uniform bool specular = true;
+uniform vec4 specular_color : hint_color = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+uniform float specular_strength : hint_range(0.0f, 1.0f) = 1.0f;
+uniform float specular_bias : hint_range(0.0f, 1.0f) = 0.9f;
+
+uniform sampler2D noise;
+uniform float height_scale : hint_range(0.0f, 3.5f) = 0.5f;
+
+void vertex() {
+
+}
+
+void fragment() {
+	if (use_texture) {
+		ALBEDO = albedo.rgb + texture(albedo_texture, UV).rgb;
+	} else {
+		ALBEDO = albedo.rgb;
+	}
+}
+
+void light() {
+	DIFFUSE_LIGHT = ALBEDO.rgb;
+	//SPECULAR_LIGHT = vec3(0.0f);
+	
+	/* Diffuse */
+	if (shade){
+		// init diffuse variables
+		float inv_shade_strength = 1.0 - shade_strength;
+		float NdotL = dot(NORMAL, LIGHT);
+		float light_intensity = step(shade_bias, NdotL);
+		light_intensity = NdotL > shade_bias ? 1.0 : inv_shade_strength;
+
+		// mix ablebo with shade color weighted by light intensity
+		vec3 out_diffuse_color = mix(shade_color.rgb, ALBEDO.rgb, vec3(light_intensity));
+		
+		// output diffuse
+		DIFFUSE_LIGHT = out_diffuse_color;
+		
+	}
+	
+	/* Specular */
+	if (specular) {
+		// init Specular variables
+		vec3 n = normalize(NORMAL); // normalize normal vector
+		float s = dot(-LIGHT, n); // calc vector scale factor for n
+		vec3 N = s * n; // direction of normal and length of projected point of light source
+
+		// calculate projection vector
+		vec3 P = LIGHT + N; // light vector projected onto normal vector
+		
+		// calcuate reflection vector
+		vec3 R = N + P; // reflection vector is angle between normal and projected vector
+		
+		// calculate vector from fragment to camera
+		vec3 to_camera = -1.0 * VIEW;
+		//vec3 to_camera = VIEW;
+		
+		// calculate the cosine of the angle between the reflection vector and view vector
+		R = normalize(R);
+		to_camera = normalize(to_camera);
+		float cos_angle = dot(R, to_camera);
+		cos_angle = clamp(cos_angle, 0.0, 1.0);
+		
+		// determine specular intensity
+		float specular_intensity = cos_angle < specular_bias ? 1.0 : 0.0;
+		
+		// mix diffuse_out with highlight color weighted by specular intensity
+		vec3 highlight_color = specular_color.rgb;
+		vec3 mixed_highlight_color = mix(specular_color.rgb * specular_strength, DIFFUSE_LIGHT,  vec3(specular_intensity));
+		vec3 object_color = DIFFUSE_LIGHT;
+		vec3 out_specular_color = specular_intensity < 1.0 ? mixed_highlight_color : object_color;
+		
+		// output specular
+		SPECULAR_LIGHT = out_specular_color;
+		
+	}
+}"
+
+[sub_resource type="ShaderMaterial" id=17]
+shader = SubResource( 16 )
+shader_param/use_texture = false
+shader_param/albedo = Color( 0.909804, 0.498039, 0.639216, 1 )
+shader_param/shade = true
+shader_param/shade_color = Color( 0, 0, 0, 1 )
+shader_param/shade_strength = 0.5
+shader_param/shade_bias = 0.01
+shader_param/specular = false
+shader_param/specular_color = Color( 1, 1, 1, 1 )
+shader_param/specular_strength = 1.0
+shader_param/specular_bias = 0.9
+shader_param/height_scale = 0.5
+
+[sub_resource type="ConvexPolygonShape" id=11]
+points = PoolVector3Array( 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, 0, 1.5, 0, -0.173648, 1.48481, 0.0170205, -0.172812, 1.48481, 0.0338771, -0.170312, 1.48481, 0.0504074, -0.166171, 1.48481, 0.0664523, -0.16043, 1.48481, 0.0818572, -0.153144, 1.48481, 0.0964738, -0.144383, 1.48481, 0.110161, -0.134232, 1.48481, 0.122788, -0.122788, 1.48481, 0.134232, -0.110161, 1.48481, 0.144383, -0.0964738, 1.48481, 0.153144, -0.0818572, 1.48481, 0.16043, -0.0664523, 1.48481, 0.166171, -0.0504074, 1.48481, 0.170312, -0.0338771, 1.48481, 0.172812, -0.0170205, 1.48481, 0.173648, -1.06325e-17, 1.48481, 0.172812, 0.0170205, 1.48481, 0.170312, 0.0338771, 1.48481, 0.166171, 0.0504074, 1.48481, 0.16043, 0.0664523, 1.48481, 0.153144, 0.0818572, 1.48481, 0.144383, 0.0964738, 1.48481, 0.134232, 0.110161, 1.48481, 0.122788, 0.122788, 1.48481, 0.110161, 0.134232, 1.48481, 0.0964738, 0.144383, 1.48481, 0.0818572, 0.153144, 1.48481, 0.0664523, 0.16043, 1.48481, 0.0504074, 0.166171, 1.48481, 0.0338771, 0.170312, 1.48481, 0.0170205, 0.172812, 1.48481, 2.12651e-17, 0.173648, 1.48481, -0.0170205, 0.172812, 1.48481, -0.0338771, 0.170312, 1.48481, -0.0504074, 0.166171, 1.48481, -0.0664523, 0.16043, 1.48481, -0.0818572, 0.153144, 1.48481, -0.0964738, 0.144383, 1.48481, -0.110161, 0.134232, 1.48481, -0.122788, 0.122788, 1.48481, -0.134232, 0.110161, 1.48481, -0.144383, 0.0964738, 1.48481, -0.153144, 0.0818572, 1.48481, -0.16043, 0.0664523, 1.48481, -0.166171, 0.0504074, 1.48481, -0.170312, 0.0338771, 1.48481, -0.172812, 0.0170205, 1.48481, -0.173648, 3.18976e-17, 1.48481, -0.172812, -0.0170205, 1.48481, -0.170312, -0.0338771, 1.48481, -0.166171, -0.0504074, 1.48481, -0.16043, -0.0664523, 1.48481, -0.153144, -0.0818572, 1.48481, -0.144383, -0.0964738, 1.48481, -0.134232, -0.110161, 1.48481, -0.122788, -0.122788, 1.48481, -0.110161, -0.134232, 1.48481, -0.0964738, -0.144383, 1.48481, -0.0818572, -0.153144, 1.48481, -0.0664523, -0.16043, 1.48481, -0.0504074, -0.166171, 1.48481, -0.0338771, -0.170312, 1.48481, -0.0170205, -0.172812, 1.48481, -4.25301e-17, -0.173648, 1.48481, 0, -0.34202, 1.43969, 0.0335238, -0.340373, 1.43969, 0.0667248, -0.335448, 1.43969, 0.0992832, -0.327293, 1.43969, 0.130885, -0.315985, 1.43969, 0.161227, -0.301635, 1.43969, 0.190016, -0.284379, 1.43969, 0.216975, -0.264385, 1.43969, 0.241845, -0.241845, 1.43969, 0.264385, -0.216975, 1.43969, 0.284379, -0.190016, 1.43969, 0.301635, -0.161227, 1.43969, 0.315985, -0.130885, 1.43969, 0.327293, -0.0992832, 1.43969, 0.335448, -0.0667248, 1.43969, 0.340373, -0.0335238, 1.43969, 0.34202, -2.0942e-17, 1.43969, 0.340373, 0.0335238, 1.43969, 0.335448, 0.0667248, 1.43969, 0.327293, 0.0992832, 1.43969, 0.315985, 0.130885, 1.43969, 0.301635, 0.161227, 1.43969, 0.284379, 0.190016, 1.43969, 0.264385, 0.216975, 1.43969, 0.241845, 0.241845, 1.43969, 0.216975, 0.264385, 1.43969, 0.190016, 0.284379, 1.43969, 0.161227, 0.301635, 1.43969, 0.130885, 0.315985, 1.43969, 0.0992832, 0.327293, 1.43969, 0.0667248, 0.335448, 1.43969, 0.0335238, 0.340373, 1.43969, 4.1884e-17, 0.34202, 1.43969, -0.0335238, 0.340373, 1.43969, -0.0667248, 0.335448, 1.43969, -0.0992832, 0.327293, 1.43969, -0.130885, 0.315985, 1.43969, -0.161227, 0.301635, 1.43969, -0.190016, 0.284379, 1.43969, -0.216975, 0.264385, 1.43969, -0.241845, 0.241845, 1.43969, -0.264385, 0.216975, 1.43969, -0.284379, 0.190016, 1.43969, -0.301635, 0.161227, 1.43969, -0.315985, 0.130885, 1.43969, -0.327293, 0.0992832, 1.43969, -0.335448, 0.0667248, 1.43969, -0.340373, 0.0335238, 1.43969, -0.34202, 6.2826e-17, 1.43969, -0.340373, -0.0335238, 1.43969, -0.335448, -0.0667248, 1.43969, -0.327293, -0.0992832, 1.43969, -0.315985, -0.130885, 1.43969, -0.301635, -0.161227, 1.43969, -0.284379, -0.190016, 1.43969, -0.264385, -0.216975, 1.43969, -0.241845, -0.241845, 1.43969, -0.216975, -0.264385, 1.43969, -0.190016, -0.284379, 1.43969, -0.161227, -0.301635, 1.43969, -0.130885, -0.315985, 1.43969, -0.0992832, -0.327293, 1.43969, -0.0667248, -0.335448, 1.43969, -0.0335238, -0.340373, 1.43969, -8.3768e-17, -0.34202, 1.43969, 0, -0.5, 1.36603, 0.0490086, -0.497592, 1.36603, 0.0975452, -0.490393, 1.36603, 0.145142, -0.47847, 1.36603, 0.191342, -0.46194, 1.36603, 0.235698, -0.440961, 1.36603, 0.277785, -0.415735, 1.36603, 0.317197, -0.386505, 1.36603, 0.353553, -0.353553, 1.36603, 0.386505, -0.317197, 1.36603, 0.415735, -0.277785, 1.36603, 0.440961, -0.235698, 1.36603, 0.46194, -0.191342, 1.36603, 0.47847, -0.145142, 1.36603, 0.490393, -0.0975452, 1.36603, 0.497592, -0.0490086, 1.36603, 0.5, -3.06152e-17, 1.36603, 0.497592, 0.0490086, 1.36603, 0.490393, 0.0975452, 1.36603, 0.47847, 0.145142, 1.36603, 0.46194, 0.191342, 1.36603, 0.440961, 0.235698, 1.36603, 0.415735, 0.277785, 1.36603, 0.386505, 0.317197, 1.36603, 0.353553, 0.353553, 1.36603, 0.317197, 0.386505, 1.36603, 0.277785, 0.415735, 1.36603, 0.235698, 0.440961, 1.36603, 0.191342, 0.46194, 1.36603, 0.145142, 0.47847, 1.36603, 0.0975452, 0.490393, 1.36603, 0.0490086, 0.497592, 1.36603, 6.12303e-17, 0.5, 1.36603, -0.0490086, 0.497592, 1.36603, -0.0975452, 0.490393, 1.36603, -0.145142, 0.47847, 1.36603, -0.191342, 0.46194, 1.36603, -0.235698, 0.440961, 1.36603, -0.277785, 0.415735, 1.36603, -0.317197, 0.386505, 1.36603, -0.353553, 0.353553, 1.36603, -0.386505, 0.317197, 1.36603, -0.415735, 0.277785, 1.36603, -0.440961, 0.235698, 1.36603, -0.46194, 0.191342, 1.36603, -0.47847, 0.145142, 1.36603, -0.490393, 0.0975452, 1.36603, -0.497592, 0.0490086, 1.36603, -0.5, 9.18455e-17, 1.36603, -0.497592, -0.0490086, 1.36603, -0.490393, -0.0975452, 1.36603, -0.47847, -0.145142, 1.36603, -0.46194, -0.191342, 1.36603, -0.440961, -0.235698, 1.36603, -0.415735, -0.277785, 1.36603, -0.386505, -0.317197, 1.36603, -0.353553, -0.353553, 1.36603, -0.317197, -0.386505, 1.36603, -0.277785, -0.415735, 1.36603, -0.235698, -0.440961, 1.36603, -0.191342, -0.46194, 1.36603, -0.145142, -0.47847, 1.36603, -0.0975452, -0.490393, 1.36603, -0.0490086, -0.497592, 1.36603, -1.22461e-16, -0.5, 1.36603, 0, -0.642788, 1.26604, 0.0630042, -0.639692, 1.26604, 0.125402, -0.630437, 1.26604, 0.186591, -0.615109, 1.26604, 0.245984, -0.593858, 1.26604, 0.303008, -0.566888, 1.26604, 0.357114, -0.534458, 1.26604, 0.40778, -0.496882, 1.26604, 0.454519, -0.454519, 1.26604, 0.496882, -0.40778, 1.26604, 0.534458, -0.357114, 1.26604, 0.566888, -0.303008, 1.26604, 0.593858, -0.245984, 1.26604, 0.615109, -0.186591, 1.26604, 0.630437, -0.125402, 1.26604, 0.639692, -0.0630042, 1.26604, 0.642788, -3.93581e-17, 1.26604, 0.639692, 0.0630042, 1.26604, 0.630437, 0.125402, 1.26604, 0.615109, 0.186591, 1.26604, 0.593858, 0.245984, 1.26604, 0.566888, 0.303008, 1.26604, 0.534458, 0.357114, 1.26604, 0.496882, 0.40778, 1.26604, 0.454519, 0.454519, 1.26604, 0.40778, 0.496882, 1.26604, 0.357114, 0.534458, 1.26604, 0.303008, 0.566888, 1.26604, 0.245984, 0.593858, 1.26604, 0.186591, 0.615109, 1.26604, 0.125402, 0.630437, 1.26604, 0.0630042, 0.639692, 1.26604, 7.87162e-17, 0.642788, 1.26604, -0.0630042, 0.639692, 1.26604, -0.125402, 0.630437, 1.26604, -0.186591, 0.615109, 1.26604, -0.245984, 0.593858, 1.26604, -0.303008, 0.566888, 1.26604, -0.357114, 0.534458, 1.26604, -0.40778, 0.496882, 1.26604, -0.454519, 0.454519, 1.26604, -0.496882, 0.40778, 1.26604, -0.534458, 0.357114, 1.26604, -0.566888, 0.303008, 1.26604, -0.593858, 0.245984, 1.26604, -0.615109, 0.186591, 1.26604, -0.630437, 0.125402, 1.26604, -0.639692, 0.0630042, 1.26604, -0.642788, 1.18074e-16, 1.26604, -0.639692, -0.0630042, 1.26604, -0.630437, -0.125402, 1.26604, -0.615109, -0.186591, 1.26604, -0.593858, -0.245984, 1.26604, -0.566888, -0.303008, 1.26604, -0.534458, -0.357114, 1.26604, -0.496882, -0.40778, 1.26604, -0.454519, -0.454519, 1.26604, -0.40778, -0.496882, 1.26604, -0.357114, -0.534458, 1.26604, -0.303008, -0.566888, 1.26604, -0.245984, -0.593858, 1.26604, -0.186591, -0.615109, 1.26604, -0.125402, -0.630437, 1.26604, -0.0630042, -0.639692, 1.26604, -1.57432e-16, -0.642788, 1.26604, 0, -0.766044, 1.14279, 0.0750855, -0.762356, 1.14279, 0.149448, -0.751325, 1.14279, 0.222371, -0.733059, 1.14279, 0.293153, -0.707733, 1.14279, 0.361111, -0.675591, 1.14279, 0.425592, -0.636943, 1.14279, 0.485973, -0.59216, 1.14279, 0.541675, -0.541675, 1.14279, 0.59216, -0.485973, 1.14279, 0.636943, -0.425592, 1.14279, 0.675591, -0.361111, 1.14279, 0.707733, -0.293153, 1.14279, 0.733059, -0.222371, 1.14279, 0.751325, -0.149448, 1.14279, 0.762356, -0.0750855, 1.14279, 0.766044, -4.69051e-17, 1.14279, 0.762356, 0.0750855, 1.14279, 0.751325, 0.149448, 1.14279, 0.733059, 0.222371, 1.14279, 0.707733, 0.293153, 1.14279, 0.675591, 0.361111, 1.14279, 0.636943, 0.425592, 1.14279, 0.59216, 0.485973, 1.14279, 0.541675, 0.541675, 1.14279, 0.485973, 0.59216, 1.14279, 0.425592, 0.636943, 1.14279, 0.361111, 0.675591, 1.14279, 0.293153, 0.707733, 1.14279, 0.222371, 0.733059, 1.14279, 0.149448, 0.751325, 1.14279, 0.0750855, 0.762356, 1.14279, 9.38103e-17, 0.766044, 1.14279, -0.0750855, 0.762356, 1.14279, -0.149448, 0.751325, 1.14279, -0.222371, 0.733059, 1.14279, -0.293153, 0.707733, 1.14279, -0.361111, 0.675591, 1.14279, -0.425592, 0.636943, 1.14279, -0.485973, 0.59216, 1.14279, -0.541675, 0.541675, 1.14279, -0.59216, 0.485973, 1.14279, -0.636943, 0.425592, 1.14279, -0.675591, 0.361111, 1.14279, -0.707733, 0.293153, 1.14279, -0.733059, 0.222371, 1.14279, -0.751325, 0.149448, 1.14279, -0.762356, 0.0750855, 1.14279, -0.766044, 1.40715e-16, 1.14279, -0.762356, -0.0750855, 1.14279, -0.751325, -0.149448, 1.14279, -0.733059, -0.222371, 1.14279, -0.707733, -0.293153, 1.14279, -0.675591, -0.361111, 1.14279, -0.636943, -0.425592, 1.14279, -0.59216, -0.485973, 1.14279, -0.541675, -0.541675, 1.14279, -0.485973, -0.59216, 1.14279, -0.425592, -0.636943, 1.14279, -0.361111, -0.675591, 1.14279, -0.293153, -0.707733, 1.14279, -0.222371, -0.733059, 1.14279, -0.149448, -0.751325, 1.14279, -0.0750855, -0.762356, 1.14279, -1.87621e-16, -0.766044, 1.14279, 0, -0.866025, 1, 0.0848853, -0.861855, 1, 0.168953, -0.849385, 1, 0.251394, -0.828735, 1, 0.331414, -0.800103, 1, 0.408242, -0.763766, 1, 0.481138, -0.720074, 1, 0.549401, -0.669447, 1, 0.612372, -0.612372, 1, 0.669447, -0.549401, 1, 0.720074, -0.481138, 1, 0.763766, -0.408242, 1, 0.800103, -0.331414, 1, 0.828735, -0.251394, 1, 0.849385, -0.168953, 1, 0.861855, -0.0848853, 1, 0.866025, -5.3027e-17, 1, 0.861855, 0.0848853, 1, 0.849385, 0.168953, 1, 0.828735, 0.251394, 1, 0.800103, 0.331414, 1, 0.763766, 0.408242, 1, 0.720074, 0.481138, 1, 0.669447, 0.549401, 1, 0.612372, 0.612372, 1, 0.549401, 0.669447, 1, 0.481138, 0.720074, 1, 0.408242, 0.763766, 1, 0.331414, 0.800103, 1, 0.251394, 0.828735, 1, 0.168953, 0.849385, 1, 0.0848853, 0.861855, 1, 1.06054e-16, 0.866025, 1, -0.0848853, 0.861855, 1, -0.168953, 0.849385, 1, -0.251394, 0.828735, 1, -0.331414, 0.800103, 1, -0.408242, 0.763766, 1, -0.481138, 0.720074, 1, -0.549401, 0.669447, 1, -0.612372, 0.612372, 1, -0.669447, 0.549401, 1, -0.720074, 0.481138, 1, -0.763766, 0.408242, 1, -0.800103, 0.331414, 1, -0.828735, 0.251394, 1, -0.849385, 0.168953, 1, -0.861855, 0.0848853, 1, -0.866025, 1.59081e-16, 1, -0.861855, -0.0848853, 1, -0.849385, -0.168953, 1, -0.828735, -0.251394, 1, -0.800103, -0.331414, 1, -0.763766, -0.408242, 1, -0.720074, -0.481138, 1, -0.669447, -0.549401, 1, -0.612372, -0.612372, 1, -0.549401, -0.669447, 1, -0.481138, -0.720074, 1, -0.408242, -0.763766, 1, -0.331414, -0.800103, 1, -0.251394, -0.828735, 1, -0.168953, -0.849385, 1, -0.0848853, -0.861855, 1, -2.12108e-16, -0.866025, 1, 0, -0.939693, 0.84202, 0.092106, -0.935168, 0.84202, 0.183325, -0.921637, 0.84202, 0.272778, -0.89923, 0.84202, 0.359605, -0.868163, 0.84202, 0.442968, -0.828735, 0.84202, 0.522065, -0.781326, 0.84202, 0.596135, -0.726392, 0.84202, 0.664463, -0.664463, 0.84202, 0.726392, -0.596135, 0.84202, 0.781326, -0.522065, 0.84202, 0.828735, -0.442968, 0.84202, 0.868163, -0.359605, 0.84202, 0.89923, -0.272778, 0.84202, 0.921637, -0.183325, 0.84202, 0.935168, -0.092106, 0.84202, 0.939693, -5.75377e-17, 0.84202, 0.935168, 0.092106, 0.84202, 0.921637, 0.183325, 0.84202, 0.89923, 0.272778, 0.84202, 0.868163, 0.359605, 0.84202, 0.828735, 0.442968, 0.84202, 0.781326, 0.522065, 0.84202, 0.726392, 0.596135, 0.84202, 0.664463, 0.664463, 0.84202, 0.596135, 0.726392, 0.84202, 0.522065, 0.781326, 0.84202, 0.442968, 0.828735, 0.84202, 0.359605, 0.868163, 0.84202, 0.272778, 0.89923, 0.84202, 0.183325, 0.921637, 0.84202, 0.092106, 0.935168, 0.84202, 1.15075e-16, 0.939693, 0.84202, -0.092106, 0.935168, 0.84202, -0.183325, 0.921637, 0.84202, -0.272778, 0.89923, 0.84202, -0.359605, 0.868163, 0.84202, -0.442968, 0.828735, 0.84202, -0.522065, 0.781326, 0.84202, -0.596135, 0.726392, 0.84202, -0.664463, 0.664463, 0.84202, -0.726392, 0.596135, 0.84202, -0.781326, 0.522065, 0.84202, -0.828735, 0.442968, 0.84202, -0.868163, 0.359605, 0.84202, -0.89923, 0.272778, 0.84202, -0.921637, 0.183325, 0.84202, -0.935168, 0.092106, 0.84202, -0.939693, 1.72613e-16, 0.84202, -0.935168, -0.092106, 0.84202, -0.921637, -0.183325, 0.84202, -0.89923, -0.272778, 0.84202, -0.868163, -0.359605, 0.84202, -0.828735, -0.442968, 0.84202, -0.781326, -0.522065, 0.84202, -0.726392, -0.596135, 0.84202, -0.664463, -0.664463, 0.84202, -0.596135, -0.726392, 0.84202, -0.522065, -0.781326, 0.84202, -0.442968, -0.828735, 0.84202, -0.359605, -0.868163, 0.84202, -0.272778, -0.89923, 0.84202, -0.183325, -0.921637, 0.84202, -0.092106, -0.935168, 0.84202, -2.30151e-16, -0.939693, 0.84202, 0, -0.984808, 0.673648, 0.096528, -0.980066, 0.673648, 0.192126, -0.965885, 0.673648, 0.285875, -0.942402, 0.673648, 0.37687, -0.909844, 0.673648, 0.464235, -0.868523, 0.673648, 0.54713, -0.818838, 0.673648, 0.624755, -0.761267, 0.673648, 0.696364, -0.696364, 0.673648, 0.761267, -0.624755, 0.673648, 0.818838, -0.54713, 0.673648, 0.868523, -0.464235, 0.673648, 0.909844, -0.37687, 0.673648, 0.942402, -0.285875, 0.673648, 0.965885, -0.192126, 0.673648, 0.980066, -0.096528, 0.673648, 0.984808, -6.03001e-17, 0.673648, 0.980066, 0.096528, 0.673648, 0.965885, 0.192126, 0.673648, 0.942402, 0.285875, 0.673648, 0.909844, 0.37687, 0.673648, 0.868523, 0.464235, 0.673648, 0.818838, 0.54713, 0.673648, 0.761267, 0.624755, 0.673648, 0.696364, 0.696364, 0.673648, 0.624755, 0.761267, 0.673648, 0.54713, 0.818838, 0.673648, 0.464235, 0.868523, 0.673648, 0.37687, 0.909844, 0.673648, 0.285875, 0.942402, 0.673648, 0.192126, 0.965885, 0.673648, 0.096528, 0.980066, 0.673648, 1.206e-16, 0.984808, 0.673648, -0.096528, 0.980066, 0.673648, -0.192126, 0.965885, 0.673648, -0.285875, 0.942402, 0.673648, -0.37687, 0.909844, 0.673648, -0.464235, 0.868523, 0.673648, -0.54713, 0.818838, 0.673648, -0.624755, 0.761267, 0.673648, -0.696364, 0.696364, 0.673648, -0.761267, 0.624755, 0.673648, -0.818838, 0.54713, 0.673648, -0.868523, 0.464235, 0.673648, -0.909844, 0.37687, 0.673648, -0.942402, 0.285875, 0.673648, -0.965885, 0.192126, 0.673648, -0.980066, 0.096528, 0.673648, -0.984808, 1.809e-16, 0.673648, -0.980066, -0.096528, 0.673648, -0.965885, -0.192126, 0.673648, -0.942402, -0.285875, 0.673648, -0.909844, -0.37687, 0.673648, -0.868523, -0.464235, 0.673648, -0.818838, -0.54713, 0.673648, -0.761267, -0.624755, 0.673648, -0.696364, -0.696364, 0.673648, -0.624755, -0.761267, 0.673648, -0.54713, -0.818838, 0.673648, -0.464235, -0.868523, 0.673648, -0.37687, -0.909844, 0.673648, -0.285875, -0.942402, 0.673648, -0.192126, -0.965885, 0.673648, -0.096528, -0.980066, 0.673648, -2.412e-16, -0.984808, 0.673648, 0, -1, 0.5, 0.0980171, -0.995185, 0.5, 0.19509, -0.980785, 0.5, 0.290285, -0.95694, 0.5, 0.382683, -0.92388, 0.5, 0.471397, -0.881921, 0.5, 0.55557, -0.83147, 0.5, 0.634393, -0.77301, 0.5, 0.707107, -0.707107, 0.5, 0.77301, -0.634393, 0.5, 0.83147, -0.55557, 0.5, 0.881921, -0.471397, 0.5, 0.92388, -0.382683, 0.5, 0.95694, -0.290285, 0.5, 0.980785, -0.19509, 0.5, 0.995185, -0.0980171, 0.5, 1, -6.12303e-17, 0.5, 0.995185, 0.0980171, 0.5, 0.980785, 0.19509, 0.5, 0.95694, 0.290285, 0.5, 0.92388, 0.382683, 0.5, 0.881921, 0.471397, 0.5, 0.83147, 0.55557, 0.5, 0.77301, 0.634393, 0.5, 0.707107, 0.707107, 0.5, 0.634393, 0.77301, 0.5, 0.55557, 0.83147, 0.5, 0.471397, 0.881921, 0.5, 0.382683, 0.92388, 0.5, 0.290285, 0.95694, 0.5, 0.19509, 0.980785, 0.5, 0.0980171, 0.995185, 0.5, 1.22461e-16, 1, 0.5, -0.0980171, 0.995185, 0.5, -0.19509, 0.980785, 0.5, -0.290285, 0.95694, 0.5, -0.382683, 0.92388, 0.5, -0.471397, 0.881921, 0.5, -0.55557, 0.83147, 0.5, -0.634393, 0.77301, 0.5, -0.707107, 0.707107, 0.5, -0.77301, 0.634393, 0.5, -0.83147, 0.55557, 0.5, -0.881921, 0.471397, 0.5, -0.92388, 0.382683, 0.5, -0.95694, 0.290285, 0.5, -0.980785, 0.19509, 0.5, -0.995185, 0.0980171, 0.5, -1, 1.83691e-16, 0.5, -0.995185, -0.0980171, 0.5, -0.980785, -0.19509, 0.5, -0.95694, -0.290285, 0.5, -0.92388, -0.382683, 0.5, -0.881921, -0.471397, 0.5, -0.83147, -0.55557, 0.5, -0.77301, -0.634393, 0.5, -0.707107, -0.707107, 0.5, -0.634393, -0.77301, 0.5, -0.55557, -0.83147, 0.5, -0.471397, -0.881921, 0.5, -0.382683, -0.92388, 0.5, -0.290285, -0.95694, 0.5, -0.19509, -0.980785, 0.5, -0.0980171, -0.995185, 0.5, -2.44921e-16, -1, 0.5, 0, -1, 0.5, 0.0980171, -0.995185, 0.5, 0.19509, -0.980785, 0.5, 0.290285, -0.95694, 0.5, 0.382683, -0.92388, 0.5, 0.471397, -0.881921, 0.5, 0.55557, -0.83147, 0.5, 0.634393, -0.77301, 0.5, 0.707107, -0.707107, 0.5, 0.77301, -0.634393, 0.5, 0.83147, -0.55557, 0.5, 0.881921, -0.471397, 0.5, 0.92388, -0.382683, 0.5, 0.95694, -0.290285, 0.5, 0.980785, -0.19509, 0.5, 0.995185, -0.0980171, 0.5, 1, -6.12303e-17, 0.5, 0.995185, 0.0980171, 0.5, 0.980785, 0.19509, 0.5, 0.95694, 0.290285, 0.5, 0.92388, 0.382683, 0.5, 0.881921, 0.471397, 0.5, 0.83147, 0.55557, 0.5, 0.77301, 0.634393, 0.5, 0.707107, 0.707107, 0.5, 0.634393, 0.77301, 0.5, 0.55557, 0.83147, 0.5, 0.471397, 0.881921, 0.5, 0.382683, 0.92388, 0.5, 0.290285, 0.95694, 0.5, 0.19509, 0.980785, 0.5, 0.0980171, 0.995185, 0.5, 1.22461e-16, 1, 0.5, -0.0980171, 0.995185, 0.5, -0.19509, 0.980785, 0.5, -0.290285, 0.95694, 0.5, -0.382683, 0.92388, 0.5, -0.471397, 0.881921, 0.5, -0.55557, 0.83147, 0.5, -0.634393, 0.77301, 0.5, -0.707107, 0.707107, 0.5, -0.77301, 0.634393, 0.5, -0.83147, 0.55557, 0.5, -0.881921, 0.471397, 0.5, -0.92388, 0.382683, 0.5, -0.95694, 0.290285, 0.5, -0.980785, 0.19509, 0.5, -0.995185, 0.0980171, 0.5, -1, 1.83691e-16, 0.5, -0.995185, -0.0980171, 0.5, -0.980785, -0.19509, 0.5, -0.95694, -0.290285, 0.5, -0.92388, -0.382683, 0.5, -0.881921, -0.471397, 0.5, -0.83147, -0.55557, 0.5, -0.77301, -0.634393, 0.5, -0.707107, -0.707107, 0.5, -0.634393, -0.77301, 0.5, -0.55557, -0.83147, 0.5, -0.471397, -0.881921, 0.5, -0.382683, -0.92388, 0.5, -0.290285, -0.95694, 0.5, -0.19509, -0.980785, 0.5, -0.0980171, -0.995185, 0.5, -2.44921e-16, -1, 0.5, 0, -1, 0.388889, 0.0980171, -0.995185, 0.388889, 0.19509, -0.980785, 0.388889, 0.290285, -0.95694, 0.388889, 0.382683, -0.92388, 0.388889, 0.471397, -0.881921, 0.388889, 0.55557, -0.83147, 0.388889, 0.634393, -0.77301, 0.388889, 0.707107, -0.707107, 0.388889, 0.77301, -0.634393, 0.388889, 0.83147, -0.55557, 0.388889, 0.881921, -0.471397, 0.388889, 0.92388, -0.382683, 0.388889, 0.95694, -0.290285, 0.388889, 0.980785, -0.19509, 0.388889, 0.995185, -0.0980171, 0.388889, 1, -6.12303e-17, 0.388889, 0.995185, 0.0980171, 0.388889, 0.980785, 0.19509, 0.388889, 0.95694, 0.290285, 0.388889, 0.92388, 0.382683, 0.388889, 0.881921, 0.471397, 0.388889, 0.83147, 0.55557, 0.388889, 0.77301, 0.634393, 0.388889, 0.707107, 0.707107, 0.388889, 0.634393, 0.77301, 0.388889, 0.55557, 0.83147, 0.388889, 0.471397, 0.881921, 0.388889, 0.382683, 0.92388, 0.388889, 0.290285, 0.95694, 0.388889, 0.19509, 0.980785, 0.388889, 0.0980171, 0.995185, 0.388889, 1.22461e-16, 1, 0.388889, -0.0980171, 0.995185, 0.388889, -0.19509, 0.980785, 0.388889, -0.290285, 0.95694, 0.388889, -0.382683, 0.92388, 0.388889, -0.471397, 0.881921, 0.388889, -0.55557, 0.83147, 0.388889, -0.634393, 0.77301, 0.388889, -0.707107, 0.707107, 0.388889, -0.77301, 0.634393, 0.388889, -0.83147, 0.55557, 0.388889, -0.881921, 0.471397, 0.388889, -0.92388, 0.382683, 0.388889, -0.95694, 0.290285, 0.388889, -0.980785, 0.19509, 0.388889, -0.995185, 0.0980171, 0.388889, -1, 1.83691e-16, 0.388889, -0.995185, -0.0980171, 0.388889, -0.980785, -0.19509, 0.388889, -0.95694, -0.290285, 0.388889, -0.92388, -0.382683, 0.388889, -0.881921, -0.471397, 0.388889, -0.83147, -0.55557, 0.388889, -0.77301, -0.634393, 0.388889, -0.707107, -0.707107, 0.388889, -0.634393, -0.77301, 0.388889, -0.55557, -0.83147, 0.388889, -0.471397, -0.881921, 0.388889, -0.382683, -0.92388, 0.388889, -0.290285, -0.95694, 0.388889, -0.19509, -0.980785, 0.388889, -0.0980171, -0.995185, 0.388889, -2.44921e-16, -1, 0.388889, 0, -1, 0.277778, 0.0980171, -0.995185, 0.277778, 0.19509, -0.980785, 0.277778, 0.290285, -0.95694, 0.277778, 0.382683, -0.92388, 0.277778, 0.471397, -0.881921, 0.277778, 0.55557, -0.83147, 0.277778, 0.634393, -0.77301, 0.277778, 0.707107, -0.707107, 0.277778, 0.77301, -0.634393, 0.277778, 0.83147, -0.55557, 0.277778, 0.881921, -0.471397, 0.277778, 0.92388, -0.382683, 0.277778, 0.95694, -0.290285, 0.277778, 0.980785, -0.19509, 0.277778, 0.995185, -0.0980171, 0.277778, 1, -6.12303e-17, 0.277778, 0.995185, 0.0980171, 0.277778, 0.980785, 0.19509, 0.277778, 0.95694, 0.290285, 0.277778, 0.92388, 0.382683, 0.277778, 0.881921, 0.471397, 0.277778, 0.83147, 0.55557, 0.277778, 0.77301, 0.634393, 0.277778, 0.707107, 0.707107, 0.277778, 0.634393, 0.77301, 0.277778, 0.55557, 0.83147, 0.277778, 0.471397, 0.881921, 0.277778, 0.382683, 0.92388, 0.277778, 0.290285, 0.95694, 0.277778, 0.19509, 0.980785, 0.277778, 0.0980171, 0.995185, 0.277778, 1.22461e-16, 1, 0.277778, -0.0980171, 0.995185, 0.277778, -0.19509, 0.980785, 0.277778, -0.290285, 0.95694, 0.277778, -0.382683, 0.92388, 0.277778, -0.471397, 0.881921, 0.277778, -0.55557, 0.83147, 0.277778, -0.634393, 0.77301, 0.277778, -0.707107, 0.707107, 0.277778, -0.77301, 0.634393, 0.277778, -0.83147, 0.55557, 0.277778, -0.881921, 0.471397, 0.277778, -0.92388, 0.382683, 0.277778, -0.95694, 0.290285, 0.277778, -0.980785, 0.19509, 0.277778, -0.995185, 0.0980171, 0.277778, -1, 1.83691e-16, 0.277778, -0.995185, -0.0980171, 0.277778, -0.980785, -0.19509, 0.277778, -0.95694, -0.290285, 0.277778, -0.92388, -0.382683, 0.277778, -0.881921, -0.471397, 0.277778, -0.83147, -0.55557, 0.277778, -0.77301, -0.634393, 0.277778, -0.707107, -0.707107, 0.277778, -0.634393, -0.77301, 0.277778, -0.55557, -0.83147, 0.277778, -0.471397, -0.881921, 0.277778, -0.382683, -0.92388, 0.277778, -0.290285, -0.95694, 0.277778, -0.19509, -0.980785, 0.277778, -0.0980171, -0.995185, 0.277778, -2.44921e-16, -1, 0.277778, 0, -1, 0.166667, 0.0980171, -0.995185, 0.166667, 0.19509, -0.980785, 0.166667, 0.290285, -0.95694, 0.166667, 0.382683, -0.92388, 0.166667, 0.471397, -0.881921, 0.166667, 0.55557, -0.83147, 0.166667, 0.634393, -0.77301, 0.166667, 0.707107, -0.707107, 0.166667, 0.77301, -0.634393, 0.166667, 0.83147, -0.55557, 0.166667, 0.881921, -0.471397, 0.166667, 0.92388, -0.382683, 0.166667, 0.95694, -0.290285, 0.166667, 0.980785, -0.19509, 0.166667, 0.995185, -0.0980171, 0.166667, 1, -6.12303e-17, 0.166667, 0.995185, 0.0980171, 0.166667, 0.980785, 0.19509, 0.166667, 0.95694, 0.290285, 0.166667, 0.92388, 0.382683, 0.166667, 0.881921, 0.471397, 0.166667, 0.83147, 0.55557, 0.166667, 0.77301, 0.634393, 0.166667, 0.707107, 0.707107, 0.166667, 0.634393, 0.77301, 0.166667, 0.55557, 0.83147, 0.166667, 0.471397, 0.881921, 0.166667, 0.382683, 0.92388, 0.166667, 0.290285, 0.95694, 0.166667, 0.19509, 0.980785, 0.166667, 0.0980171, 0.995185, 0.166667, 1.22461e-16, 1, 0.166667, -0.0980171, 0.995185, 0.166667, -0.19509, 0.980785, 0.166667, -0.290285, 0.95694, 0.166667, -0.382683, 0.92388, 0.166667, -0.471397, 0.881921, 0.166667, -0.55557, 0.83147, 0.166667, -0.634393, 0.77301, 0.166667, -0.707107, 0.707107, 0.166667, -0.77301, 0.634393, 0.166667, -0.83147, 0.55557, 0.166667, -0.881921, 0.471397, 0.166667, -0.92388, 0.382683, 0.166667, -0.95694, 0.290285, 0.166667, -0.980785, 0.19509, 0.166667, -0.995185, 0.0980171, 0.166667, -1, 1.83691e-16, 0.166667, -0.995185, -0.0980171, 0.166667, -0.980785, -0.19509, 0.166667, -0.95694, -0.290285, 0.166667, -0.92388, -0.382683, 0.166667, -0.881921, -0.471397, 0.166667, -0.83147, -0.55557, 0.166667, -0.77301, -0.634393, 0.166667, -0.707107, -0.707107, 0.166667, -0.634393, -0.77301, 0.166667, -0.55557, -0.83147, 0.166667, -0.471397, -0.881921, 0.166667, -0.382683, -0.92388, 0.166667, -0.290285, -0.95694, 0.166667, -0.19509, -0.980785, 0.166667, -0.0980171, -0.995185, 0.166667, -2.44921e-16, -1, 0.166667, 0, -1, 0.0555556, 0.0980171, -0.995185, 0.0555556, 0.19509, -0.980785, 0.0555556, 0.290285, -0.95694, 0.0555556, 0.382683, -0.92388, 0.0555556, 0.471397, -0.881921, 0.0555556, 0.55557, -0.83147, 0.0555556, 0.634393, -0.77301, 0.0555556, 0.707107, -0.707107, 0.0555556, 0.77301, -0.634393, 0.0555556, 0.83147, -0.55557, 0.0555556, 0.881921, -0.471397, 0.0555556, 0.92388, -0.382683, 0.0555556, 0.95694, -0.290285, 0.0555556, 0.980785, -0.19509, 0.0555556, 0.995185, -0.0980171, 0.0555556, 1, -6.12303e-17, 0.0555556, 0.995185, 0.0980171, 0.0555556, 0.980785, 0.19509, 0.0555556, 0.95694, 0.290285, 0.0555556, 0.92388, 0.382683, 0.0555556, 0.881921, 0.471397, 0.0555556, 0.83147, 0.55557, 0.0555556, 0.77301, 0.634393, 0.0555556, 0.707107, 0.707107, 0.0555556, 0.634393, 0.77301, 0.0555556, 0.55557, 0.83147, 0.0555556, 0.471397, 0.881921, 0.0555556, 0.382683, 0.92388, 0.0555556, 0.290285, 0.95694, 0.0555556, 0.19509, 0.980785, 0.0555556, 0.0980171, 0.995185, 0.0555556, 1.22461e-16, 1, 0.0555556, -0.0980171, 0.995185, 0.0555556, -0.19509, 0.980785, 0.0555556, -0.290285, 0.95694, 0.0555556, -0.382683, 0.92388, 0.0555556, -0.471397, 0.881921, 0.0555556, -0.55557, 0.83147, 0.0555556, -0.634393, 0.77301, 0.0555556, -0.707107, 0.707107, 0.0555556, -0.77301, 0.634393, 0.0555556, -0.83147, 0.55557, 0.0555556, -0.881921, 0.471397, 0.0555556, -0.92388, 0.382683, 0.0555556, -0.95694, 0.290285, 0.0555556, -0.980785, 0.19509, 0.0555556, -0.995185, 0.0980171, 0.0555556, -1, 1.83691e-16, 0.0555556, -0.995185, -0.0980171, 0.0555556, -0.980785, -0.19509, 0.0555556, -0.95694, -0.290285, 0.0555556, -0.92388, -0.382683, 0.0555556, -0.881921, -0.471397, 0.0555556, -0.83147, -0.55557, 0.0555556, -0.77301, -0.634393, 0.0555556, -0.707107, -0.707107, 0.0555556, -0.634393, -0.77301, 0.0555556, -0.55557, -0.83147, 0.0555556, -0.471397, -0.881921, 0.0555556, -0.382683, -0.92388, 0.0555556, -0.290285, -0.95694, 0.0555556, -0.19509, -0.980785, 0.0555556, -0.0980171, -0.995185, 0.0555556, -2.44921e-16, -1, 0.0555556, 0, -1, -0.0555556, 0.0980171, -0.995185, -0.0555556, 0.19509, -0.980785, -0.0555556, 0.290285, -0.95694, -0.0555556, 0.382683, -0.92388, -0.0555556, 0.471397, -0.881921, -0.0555556, 0.55557, -0.83147, -0.0555556, 0.634393, -0.77301, -0.0555556, 0.707107, -0.707107, -0.0555556, 0.77301, -0.634393, -0.0555556, 0.83147, -0.55557, -0.0555556, 0.881921, -0.471397, -0.0555556, 0.92388, -0.382683, -0.0555556, 0.95694, -0.290285, -0.0555556, 0.980785, -0.19509, -0.0555556, 0.995185, -0.0980171, -0.0555556, 1, -6.12303e-17, -0.0555556, 0.995185, 0.0980171, -0.0555556, 0.980785, 0.19509, -0.0555556, 0.95694, 0.290285, -0.0555556, 0.92388, 0.382683, -0.0555556, 0.881921, 0.471397, -0.0555556, 0.83147, 0.55557, -0.0555556, 0.77301, 0.634393, -0.0555556, 0.707107, 0.707107, -0.0555556, 0.634393, 0.77301, -0.0555556, 0.55557, 0.83147, -0.0555556, 0.471397, 0.881921, -0.0555556, 0.382683, 0.92388, -0.0555556, 0.290285, 0.95694, -0.0555556, 0.19509, 0.980785, -0.0555556, 0.0980171, 0.995185, -0.0555556, 1.22461e-16, 1, -0.0555556, -0.0980171, 0.995185, -0.0555556, -0.19509, 0.980785, -0.0555556, -0.290285, 0.95694, -0.0555556, -0.382683, 0.92388, -0.0555556, -0.471397, 0.881921, -0.0555556, -0.55557, 0.83147, -0.0555556, -0.634393, 0.77301, -0.0555556, -0.707107, 0.707107, -0.0555556, -0.77301, 0.634393, -0.0555556, -0.83147, 0.55557, -0.0555556, -0.881921, 0.471397, -0.0555556, -0.92388, 0.382683, -0.0555556, -0.95694, 0.290285, -0.0555556, -0.980785, 0.19509, -0.0555556, -0.995185, 0.0980171, -0.0555556, -1, 1.83691e-16, -0.0555556, -0.995185, -0.0980171, -0.0555556, -0.980785, -0.19509, -0.0555556, -0.95694, -0.290285, -0.0555556, -0.92388, -0.382683, -0.0555556, -0.881921, -0.471397, -0.0555556, -0.83147, -0.55557, -0.0555556, -0.77301, -0.634393, -0.0555556, -0.707107, -0.707107, -0.0555556, -0.634393, -0.77301, -0.0555556, -0.55557, -0.83147, -0.0555556, -0.471397, -0.881921, -0.0555556, -0.382683, -0.92388, -0.0555556, -0.290285, -0.95694, -0.0555556, -0.19509, -0.980785, -0.0555556, -0.0980171, -0.995185, -0.0555556, -2.44921e-16, -1, -0.0555556, 0, -1, -0.166667, 0.0980171, -0.995185, -0.166667, 0.19509, -0.980785, -0.166667, 0.290285, -0.95694, -0.166667, 0.382683, -0.92388, -0.166667, 0.471397, -0.881921, -0.166667, 0.55557, -0.83147, -0.166667, 0.634393, -0.77301, -0.166667, 0.707107, -0.707107, -0.166667, 0.77301, -0.634393, -0.166667, 0.83147, -0.55557, -0.166667, 0.881921, -0.471397, -0.166667, 0.92388, -0.382683, -0.166667, 0.95694, -0.290285, -0.166667, 0.980785, -0.19509, -0.166667, 0.995185, -0.0980171, -0.166667, 1, -6.12303e-17, -0.166667, 0.995185, 0.0980171, -0.166667, 0.980785, 0.19509, -0.166667, 0.95694, 0.290285, -0.166667, 0.92388, 0.382683, -0.166667, 0.881921, 0.471397, -0.166667, 0.83147, 0.55557, -0.166667, 0.77301, 0.634393, -0.166667, 0.707107, 0.707107, -0.166667, 0.634393, 0.77301, -0.166667, 0.55557, 0.83147, -0.166667, 0.471397, 0.881921, -0.166667, 0.382683, 0.92388, -0.166667, 0.290285, 0.95694, -0.166667, 0.19509, 0.980785, -0.166667, 0.0980171, 0.995185, -0.166667, 1.22461e-16, 1, -0.166667, -0.0980171, 0.995185, -0.166667, -0.19509, 0.980785, -0.166667, -0.290285, 0.95694, -0.166667, -0.382683, 0.92388, -0.166667, -0.471397, 0.881921, -0.166667, -0.55557, 0.83147, -0.166667, -0.634393, 0.77301, -0.166667, -0.707107, 0.707107, -0.166667, -0.77301, 0.634393, -0.166667, -0.83147, 0.55557, -0.166667, -0.881921, 0.471397, -0.166667, -0.92388, 0.382683, -0.166667, -0.95694, 0.290285, -0.166667, -0.980785, 0.19509, -0.166667, -0.995185, 0.0980171, -0.166667, -1, 1.83691e-16, -0.166667, -0.995185, -0.0980171, -0.166667, -0.980785, -0.19509, -0.166667, -0.95694, -0.290285, -0.166667, -0.92388, -0.382683, -0.166667, -0.881921, -0.471397, -0.166667, -0.83147, -0.55557, -0.166667, -0.77301, -0.634393, -0.166667, -0.707107, -0.707107, -0.166667, -0.634393, -0.77301, -0.166667, -0.55557, -0.83147, -0.166667, -0.471397, -0.881921, -0.166667, -0.382683, -0.92388, -0.166667, -0.290285, -0.95694, -0.166667, -0.19509, -0.980785, -0.166667, -0.0980171, -0.995185, -0.166667, -2.44921e-16, -1, -0.166667, 0, -1, -0.277778, 0.0980171, -0.995185, -0.277778, 0.19509, -0.980785, -0.277778, 0.290285, -0.95694, -0.277778, 0.382683, -0.92388, -0.277778, 0.471397, -0.881921, -0.277778, 0.55557, -0.83147, -0.277778, 0.634393, -0.77301, -0.277778, 0.707107, -0.707107, -0.277778, 0.77301, -0.634393, -0.277778, 0.83147, -0.55557, -0.277778, 0.881921, -0.471397, -0.277778, 0.92388, -0.382683, -0.277778, 0.95694, -0.290285, -0.277778, 0.980785, -0.19509, -0.277778, 0.995185, -0.0980171, -0.277778, 1, -6.12303e-17, -0.277778, 0.995185, 0.0980171, -0.277778, 0.980785, 0.19509, -0.277778, 0.95694, 0.290285, -0.277778, 0.92388, 0.382683, -0.277778, 0.881921, 0.471397, -0.277778, 0.83147, 0.55557, -0.277778, 0.77301, 0.634393, -0.277778, 0.707107, 0.707107, -0.277778, 0.634393, 0.77301, -0.277778, 0.55557, 0.83147, -0.277778, 0.471397, 0.881921, -0.277778, 0.382683, 0.92388, -0.277778, 0.290285, 0.95694, -0.277778, 0.19509, 0.980785, -0.277778, 0.0980171, 0.995185, -0.277778, 1.22461e-16, 1, -0.277778, -0.0980171, 0.995185, -0.277778, -0.19509, 0.980785, -0.277778, -0.290285, 0.95694, -0.277778, -0.382683, 0.92388, -0.277778, -0.471397, 0.881921, -0.277778, -0.55557, 0.83147, -0.277778, -0.634393, 0.77301, -0.277778, -0.707107, 0.707107, -0.277778, -0.77301, 0.634393, -0.277778, -0.83147, 0.55557, -0.277778, -0.881921, 0.471397, -0.277778, -0.92388, 0.382683, -0.277778, -0.95694, 0.290285, -0.277778, -0.980785, 0.19509, -0.277778, -0.995185, 0.0980171, -0.277778, -1, 1.83691e-16, -0.277778, -0.995185, -0.0980171, -0.277778, -0.980785, -0.19509, -0.277778, -0.95694, -0.290285, -0.277778, -0.92388, -0.382683, -0.277778, -0.881921, -0.471397, -0.277778, -0.83147, -0.55557, -0.277778, -0.77301, -0.634393, -0.277778, -0.707107, -0.707107, -0.277778, -0.634393, -0.77301, -0.277778, -0.55557, -0.83147, -0.277778, -0.471397, -0.881921, -0.277778, -0.382683, -0.92388, -0.277778, -0.290285, -0.95694, -0.277778, -0.19509, -0.980785, -0.277778, -0.0980171, -0.995185, -0.277778, -2.44921e-16, -1, -0.277778, 0, -1, -0.388889, 0.0980171, -0.995185, -0.388889, 0.19509, -0.980785, -0.388889, 0.290285, -0.95694, -0.388889, 0.382683, -0.92388, -0.388889, 0.471397, -0.881921, -0.388889, 0.55557, -0.83147, -0.388889, 0.634393, -0.77301, -0.388889, 0.707107, -0.707107, -0.388889, 0.77301, -0.634393, -0.388889, 0.83147, -0.55557, -0.388889, 0.881921, -0.471397, -0.388889, 0.92388, -0.382683, -0.388889, 0.95694, -0.290285, -0.388889, 0.980785, -0.19509, -0.388889, 0.995185, -0.0980171, -0.388889, 1, -6.12303e-17, -0.388889, 0.995185, 0.0980171, -0.388889, 0.980785, 0.19509, -0.388889, 0.95694, 0.290285, -0.388889, 0.92388, 0.382683, -0.388889, 0.881921, 0.471397, -0.388889, 0.83147, 0.55557, -0.388889, 0.77301, 0.634393, -0.388889, 0.707107, 0.707107, -0.388889, 0.634393, 0.77301, -0.388889, 0.55557, 0.83147, -0.388889, 0.471397, 0.881921, -0.388889, 0.382683, 0.92388, -0.388889, 0.290285, 0.95694, -0.388889, 0.19509, 0.980785, -0.388889, 0.0980171, 0.995185, -0.388889, 1.22461e-16, 1, -0.388889, -0.0980171, 0.995185, -0.388889, -0.19509, 0.980785, -0.388889, -0.290285, 0.95694, -0.388889, -0.382683, 0.92388, -0.388889, -0.471397, 0.881921, -0.388889, -0.55557, 0.83147, -0.388889, -0.634393, 0.77301, -0.388889, -0.707107, 0.707107, -0.388889, -0.77301, 0.634393, -0.388889, -0.83147, 0.55557, -0.388889, -0.881921, 0.471397, -0.388889, -0.92388, 0.382683, -0.388889, -0.95694, 0.290285, -0.388889, -0.980785, 0.19509, -0.388889, -0.995185, 0.0980171, -0.388889, -1, 1.83691e-16, -0.388889, -0.995185, -0.0980171, -0.388889, -0.980785, -0.19509, -0.388889, -0.95694, -0.290285, -0.388889, -0.92388, -0.382683, -0.388889, -0.881921, -0.471397, -0.388889, -0.83147, -0.55557, -0.388889, -0.77301, -0.634393, -0.388889, -0.707107, -0.707107, -0.388889, -0.634393, -0.77301, -0.388889, -0.55557, -0.83147, -0.388889, -0.471397, -0.881921, -0.388889, -0.382683, -0.92388, -0.388889, -0.290285, -0.95694, -0.388889, -0.19509, -0.980785, -0.388889, -0.0980171, -0.995185, -0.388889, -2.44921e-16, -1, -0.388889, 0, -1, -0.5, 0.0980171, -0.995185, -0.5, 0.19509, -0.980785, -0.5, 0.290285, -0.95694, -0.5, 0.382683, -0.92388, -0.5, 0.471397, -0.881921, -0.5, 0.55557, -0.83147, -0.5, 0.634393, -0.77301, -0.5, 0.707107, -0.707107, -0.5, 0.77301, -0.634393, -0.5, 0.83147, -0.55557, -0.5, 0.881921, -0.471397, -0.5, 0.92388, -0.382683, -0.5, 0.95694, -0.290285, -0.5, 0.980785, -0.19509, -0.5, 0.995185, -0.0980171, -0.5, 1, -6.12303e-17, -0.5, 0.995185, 0.0980171, -0.5, 0.980785, 0.19509, -0.5, 0.95694, 0.290285, -0.5, 0.92388, 0.382683, -0.5, 0.881921, 0.471397, -0.5, 0.83147, 0.55557, -0.5, 0.77301, 0.634393, -0.5, 0.707107, 0.707107, -0.5, 0.634393, 0.77301, -0.5, 0.55557, 0.83147, -0.5, 0.471397, 0.881921, -0.5, 0.382683, 0.92388, -0.5, 0.290285, 0.95694, -0.5, 0.19509, 0.980785, -0.5, 0.0980171, 0.995185, -0.5, 1.22461e-16, 1, -0.5, -0.0980171, 0.995185, -0.5, -0.19509, 0.980785, -0.5, -0.290285, 0.95694, -0.5, -0.382683, 0.92388, -0.5, -0.471397, 0.881921, -0.5, -0.55557, 0.83147, -0.5, -0.634393, 0.77301, -0.5, -0.707107, 0.707107, -0.5, -0.77301, 0.634393, -0.5, -0.83147, 0.55557, -0.5, -0.881921, 0.471397, -0.5, -0.92388, 0.382683, -0.5, -0.95694, 0.290285, -0.5, -0.980785, 0.19509, -0.5, -0.995185, 0.0980171, -0.5, -1, 1.83691e-16, -0.5, -0.995185, -0.0980171, -0.5, -0.980785, -0.19509, -0.5, -0.95694, -0.290285, -0.5, -0.92388, -0.382683, -0.5, -0.881921, -0.471397, -0.5, -0.83147, -0.55557, -0.5, -0.77301, -0.634393, -0.5, -0.707107, -0.707107, -0.5, -0.634393, -0.77301, -0.5, -0.55557, -0.83147, -0.5, -0.471397, -0.881921, -0.5, -0.382683, -0.92388, -0.5, -0.290285, -0.95694, -0.5, -0.19509, -0.980785, -0.5, -0.0980171, -0.995185, -0.5, -2.44921e-16, -1, -0.5, 0, -1, -0.5, 0.0980171, -0.995185, -0.5, 0.19509, -0.980785, -0.5, 0.290285, -0.95694, -0.5, 0.382683, -0.92388, -0.5, 0.471397, -0.881921, -0.5, 0.55557, -0.83147, -0.5, 0.634393, -0.77301, -0.5, 0.707107, -0.707107, -0.5, 0.77301, -0.634393, -0.5, 0.83147, -0.55557, -0.5, 0.881921, -0.471397, -0.5, 0.92388, -0.382683, -0.5, 0.95694, -0.290285, -0.5, 0.980785, -0.19509, -0.5, 0.995185, -0.0980171, -0.5, 1, -6.12303e-17, -0.5, 0.995185, 0.0980171, -0.5, 0.980785, 0.19509, -0.5, 0.95694, 0.290285, -0.5, 0.92388, 0.382683, -0.5, 0.881921, 0.471397, -0.5, 0.83147, 0.55557, -0.5, 0.77301, 0.634393, -0.5, 0.707107, 0.707107, -0.5, 0.634393, 0.77301, -0.5, 0.55557, 0.83147, -0.5, 0.471397, 0.881921, -0.5, 0.382683, 0.92388, -0.5, 0.290285, 0.95694, -0.5, 0.19509, 0.980785, -0.5, 0.0980171, 0.995185, -0.5, 1.22461e-16, 1, -0.5, -0.0980171, 0.995185, -0.5, -0.19509, 0.980785, -0.5, -0.290285, 0.95694, -0.5, -0.382683, 0.92388, -0.5, -0.471397, 0.881921, -0.5, -0.55557, 0.83147, -0.5, -0.634393, 0.77301, -0.5, -0.707107, 0.707107, -0.5, -0.77301, 0.634393, -0.5, -0.83147, 0.55557, -0.5, -0.881921, 0.471397, -0.5, -0.92388, 0.382683, -0.5, -0.95694, 0.290285, -0.5, -0.980785, 0.19509, -0.5, -0.995185, 0.0980171, -0.5, -1, 1.83691e-16, -0.5, -0.995185, -0.0980171, -0.5, -0.980785, -0.19509, -0.5, -0.95694, -0.290285, -0.5, -0.92388, -0.382683, -0.5, -0.881921, -0.471397, -0.5, -0.83147, -0.55557, -0.5, -0.77301, -0.634393, -0.5, -0.707107, -0.707107, -0.5, -0.634393, -0.77301, -0.5, -0.55557, -0.83147, -0.5, -0.471397, -0.881921, -0.5, -0.382683, -0.92388, -0.5, -0.290285, -0.95694, -0.5, -0.19509, -0.980785, -0.5, -0.0980171, -0.995185, -0.5, -2.44921e-16, -1, -0.5, 0, -0.984808, -0.673648, 0.096528, -0.980066, -0.673648, 0.192126, -0.965885, -0.673648, 0.285875, -0.942402, -0.673648, 0.37687, -0.909844, -0.673648, 0.464235, -0.868523, -0.673648, 0.54713, -0.818838, -0.673648, 0.624755, -0.761267, -0.673648, 0.696364, -0.696364, -0.673648, 0.761267, -0.624755, -0.673648, 0.818838, -0.54713, -0.673648, 0.868523, -0.464235, -0.673648, 0.909844, -0.37687, -0.673648, 0.942402, -0.285875, -0.673648, 0.965885, -0.192126, -0.673648, 0.980066, -0.096528, -0.673648, 0.984808, -6.03001e-17, -0.673648, 0.980066, 0.096528, -0.673648, 0.965885, 0.192126, -0.673648, 0.942402, 0.285875, -0.673648, 0.909844, 0.37687, -0.673648, 0.868523, 0.464235, -0.673648, 0.818838, 0.54713, -0.673648, 0.761267, 0.624755, -0.673648, 0.696364, 0.696364, -0.673648, 0.624755, 0.761267, -0.673648, 0.54713, 0.818838, -0.673648, 0.464235, 0.868523, -0.673648, 0.37687, 0.909844, -0.673648, 0.285875, 0.942402, -0.673648, 0.192126, 0.965885, -0.673648, 0.096528, 0.980066, -0.673648, 1.206e-16, 0.984808, -0.673648, -0.096528, 0.980066, -0.673648, -0.192126, 0.965885, -0.673648, -0.285875, 0.942402, -0.673648, -0.37687, 0.909844, -0.673648, -0.464235, 0.868523, -0.673648, -0.54713, 0.818838, -0.673648, -0.624755, 0.761267, -0.673648, -0.696364, 0.696364, -0.673648, -0.761267, 0.624755, -0.673648, -0.818838, 0.54713, -0.673648, -0.868523, 0.464235, -0.673648, -0.909844, 0.37687, -0.673648, -0.942402, 0.285875, -0.673648, -0.965885, 0.192126, -0.673648, -0.980066, 0.096528, -0.673648, -0.984808, 1.809e-16, -0.673648, -0.980066, -0.096528, -0.673648, -0.965885, -0.192126, -0.673648, -0.942402, -0.285875, -0.673648, -0.909844, -0.37687, -0.673648, -0.868523, -0.464235, -0.673648, -0.818838, -0.54713, -0.673648, -0.761267, -0.624755, -0.673648, -0.696364, -0.696364, -0.673648, -0.624755, -0.761267, -0.673648, -0.54713, -0.818838, -0.673648, -0.464235, -0.868523, -0.673648, -0.37687, -0.909844, -0.673648, -0.285875, -0.942402, -0.673648, -0.192126, -0.965885, -0.673648, -0.096528, -0.980066, -0.673648, -2.412e-16, -0.984808, -0.673648, 0, -0.939693, -0.84202, 0.092106, -0.935168, -0.84202, 0.183325, -0.921637, -0.84202, 0.272778, -0.89923, -0.84202, 0.359605, -0.868163, -0.84202, 0.442968, -0.828735, -0.84202, 0.522065, -0.781326, -0.84202, 0.596135, -0.726392, -0.84202, 0.664463, -0.664463, -0.84202, 0.726392, -0.596135, -0.84202, 0.781326, -0.522065, -0.84202, 0.828735, -0.442968, -0.84202, 0.868163, -0.359605, -0.84202, 0.89923, -0.272778, -0.84202, 0.921637, -0.183325, -0.84202, 0.935168, -0.092106, -0.84202, 0.939693, -5.75377e-17, -0.84202, 0.935168, 0.092106, -0.84202, 0.921637, 0.183325, -0.84202, 0.89923, 0.272778, -0.84202, 0.868163, 0.359605, -0.84202, 0.828735, 0.442968, -0.84202, 0.781326, 0.522065, -0.84202, 0.726392, 0.596135, -0.84202, 0.664463, 0.664463, -0.84202, 0.596135, 0.726392, -0.84202, 0.522065, 0.781326, -0.84202, 0.442968, 0.828735, -0.84202, 0.359605, 0.868163, -0.84202, 0.272778, 0.89923, -0.84202, 0.183325, 0.921637, -0.84202, 0.092106, 0.935168, -0.84202, 1.15075e-16, 0.939693, -0.84202, -0.092106, 0.935168, -0.84202, -0.183325, 0.921637, -0.84202, -0.272778, 0.89923, -0.84202, -0.359605, 0.868163, -0.84202, -0.442968, 0.828735, -0.84202, -0.522065, 0.781326, -0.84202, -0.596135, 0.726392, -0.84202, -0.664463, 0.664463, -0.84202, -0.726392, 0.596135, -0.84202, -0.781326, 0.522065, -0.84202, -0.828735, 0.442968, -0.84202, -0.868163, 0.359605, -0.84202, -0.89923, 0.272778, -0.84202, -0.921637, 0.183325, -0.84202, -0.935168, 0.092106, -0.84202, -0.939693, 1.72613e-16, -0.84202, -0.935168, -0.092106, -0.84202, -0.921637, -0.183325, -0.84202, -0.89923, -0.272778, -0.84202, -0.868163, -0.359605, -0.84202, -0.828735, -0.442968, -0.84202, -0.781326, -0.522065, -0.84202, -0.726392, -0.596135, -0.84202, -0.664463, -0.664463, -0.84202, -0.596135, -0.726392, -0.84202, -0.522065, -0.781326, -0.84202, -0.442968, -0.828735, -0.84202, -0.359605, -0.868163, -0.84202, -0.272778, -0.89923, -0.84202, -0.183325, -0.921637, -0.84202, -0.092106, -0.935168, -0.84202, -2.30151e-16, -0.939693, -0.84202, 0, -0.866025, -1, 0.0848853, -0.861855, -1, 0.168953, -0.849385, -1, 0.251394, -0.828735, -1, 0.331414, -0.800103, -1, 0.408242, -0.763766, -1, 0.481138, -0.720074, -1, 0.549401, -0.669447, -1, 0.612372, -0.612372, -1, 0.669447, -0.549401, -1, 0.720074, -0.481138, -1, 0.763766, -0.408242, -1, 0.800103, -0.331414, -1, 0.828735, -0.251394, -1, 0.849385, -0.168953, -1, 0.861855, -0.0848853, -1, 0.866025, -5.3027e-17, -1, 0.861855, 0.0848853, -1, 0.849385, 0.168953, -1, 0.828735, 0.251394, -1, 0.800103, 0.331414, -1, 0.763766, 0.408242, -1, 0.720074, 0.481138, -1, 0.669447, 0.549401, -1, 0.612372, 0.612372, -1, 0.549401, 0.669447, -1, 0.481138, 0.720074, -1, 0.408242, 0.763766, -1, 0.331414, 0.800103, -1, 0.251394, 0.828735, -1, 0.168953, 0.849385, -1, 0.0848853, 0.861855, -1, 1.06054e-16, 0.866025, -1, -0.0848853, 0.861855, -1, -0.168953, 0.849385, -1, -0.251394, 0.828735, -1, -0.331414, 0.800103, -1, -0.408242, 0.763766, -1, -0.481138, 0.720074, -1, -0.549401, 0.669447, -1, -0.612372, 0.612372, -1, -0.669447, 0.549401, -1, -0.720074, 0.481138, -1, -0.763766, 0.408242, -1, -0.800103, 0.331414, -1, -0.828735, 0.251394, -1, -0.849385, 0.168953, -1, -0.861855, 0.0848853, -1, -0.866025, 1.59081e-16, -1, -0.861855, -0.0848853, -1, -0.849385, -0.168953, -1, -0.828735, -0.251394, -1, -0.800103, -0.331414, -1, -0.763766, -0.408242, -1, -0.720074, -0.481138, -1, -0.669447, -0.549401, -1, -0.612372, -0.612372, -1, -0.549401, -0.669447, -1, -0.481138, -0.720074, -1, -0.408242, -0.763766, -1, -0.331414, -0.800103, -1, -0.251394, -0.828735, -1, -0.168953, -0.849385, -1, -0.0848853, -0.861855, -1, -2.12108e-16, -0.866025, -1, 0, -0.766044, -1.14279, 0.0750855, -0.762356, -1.14279, 0.149448, -0.751325, -1.14279, 0.222371, -0.733059, -1.14279, 0.293153, -0.707733, -1.14279, 0.361111, -0.675591, -1.14279, 0.425592, -0.636943, -1.14279, 0.485973, -0.59216, -1.14279, 0.541675, -0.541675, -1.14279, 0.59216, -0.485973, -1.14279, 0.636943, -0.425592, -1.14279, 0.675591, -0.361111, -1.14279, 0.707733, -0.293153, -1.14279, 0.733059, -0.222371, -1.14279, 0.751325, -0.149448, -1.14279, 0.762356, -0.0750855, -1.14279, 0.766044, -4.69051e-17, -1.14279, 0.762356, 0.0750855, -1.14279, 0.751325, 0.149448, -1.14279, 0.733059, 0.222371, -1.14279, 0.707733, 0.293153, -1.14279, 0.675591, 0.361111, -1.14279, 0.636943, 0.425592, -1.14279, 0.59216, 0.485973, -1.14279, 0.541675, 0.541675, -1.14279, 0.485973, 0.59216, -1.14279, 0.425592, 0.636943, -1.14279, 0.361111, 0.675591, -1.14279, 0.293153, 0.707733, -1.14279, 0.222371, 0.733059, -1.14279, 0.149448, 0.751325, -1.14279, 0.0750855, 0.762356, -1.14279, 9.38103e-17, 0.766044, -1.14279, -0.0750855, 0.762356, -1.14279, -0.149448, 0.751325, -1.14279, -0.222371, 0.733059, -1.14279, -0.293153, 0.707733, -1.14279, -0.361111, 0.675591, -1.14279, -0.425592, 0.636943, -1.14279, -0.485973, 0.59216, -1.14279, -0.541675, 0.541675, -1.14279, -0.59216, 0.485973, -1.14279, -0.636943, 0.425592, -1.14279, -0.675591, 0.361111, -1.14279, -0.707733, 0.293153, -1.14279, -0.733059, 0.222371, -1.14279, -0.751325, 0.149448, -1.14279, -0.762356, 0.0750855, -1.14279, -0.766044, 1.40715e-16, -1.14279, -0.762356, -0.0750855, -1.14279, -0.751325, -0.149448, -1.14279, -0.733059, -0.222371, -1.14279, -0.707733, -0.293153, -1.14279, -0.675591, -0.361111, -1.14279, -0.636943, -0.425592, -1.14279, -0.59216, -0.485973, -1.14279, -0.541675, -0.541675, -1.14279, -0.485973, -0.59216, -1.14279, -0.425592, -0.636943, -1.14279, -0.361111, -0.675591, -1.14279, -0.293153, -0.707733, -1.14279, -0.222371, -0.733059, -1.14279, -0.149448, -0.751325, -1.14279, -0.0750855, -0.762356, -1.14279, -1.87621e-16, -0.766044, -1.14279, 0, -0.642788, -1.26604, 0.0630042, -0.639692, -1.26604, 0.125402, -0.630437, -1.26604, 0.186591, -0.615109, -1.26604, 0.245984, -0.593858, -1.26604, 0.303008, -0.566888, -1.26604, 0.357114, -0.534458, -1.26604, 0.40778, -0.496882, -1.26604, 0.454519, -0.454519, -1.26604, 0.496882, -0.40778, -1.26604, 0.534458, -0.357114, -1.26604, 0.566888, -0.303008, -1.26604, 0.593858, -0.245984, -1.26604, 0.615109, -0.186591, -1.26604, 0.630437, -0.125402, -1.26604, 0.639692, -0.0630042, -1.26604, 0.642788, -3.93581e-17, -1.26604, 0.639692, 0.0630042, -1.26604, 0.630437, 0.125402, -1.26604, 0.615109, 0.186591, -1.26604, 0.593858, 0.245984, -1.26604, 0.566888, 0.303008, -1.26604, 0.534458, 0.357114, -1.26604, 0.496882, 0.40778, -1.26604, 0.454519, 0.454519, -1.26604, 0.40778, 0.496882, -1.26604, 0.357114, 0.534458, -1.26604, 0.303008, 0.566888, -1.26604, 0.245984, 0.593858, -1.26604, 0.186591, 0.615109, -1.26604, 0.125402, 0.630437, -1.26604, 0.0630042, 0.639692, -1.26604, 7.87162e-17, 0.642788, -1.26604, -0.0630042, 0.639692, -1.26604, -0.125402, 0.630437, -1.26604, -0.186591, 0.615109, -1.26604, -0.245984, 0.593858, -1.26604, -0.303008, 0.566888, -1.26604, -0.357114, 0.534458, -1.26604, -0.40778, 0.496882, -1.26604, -0.454519, 0.454519, -1.26604, -0.496882, 0.40778, -1.26604, -0.534458, 0.357114, -1.26604, -0.566888, 0.303008, -1.26604, -0.593858, 0.245984, -1.26604, -0.615109, 0.186591, -1.26604, -0.630437, 0.125402, -1.26604, -0.639692, 0.0630042, -1.26604, -0.642788, 1.18074e-16, -1.26604, -0.639692, -0.0630042, -1.26604, -0.630437, -0.125402, -1.26604, -0.615109, -0.186591, -1.26604, -0.593858, -0.245984, -1.26604, -0.566888, -0.303008, -1.26604, -0.534458, -0.357114, -1.26604, -0.496882, -0.40778, -1.26604, -0.454519, -0.454519, -1.26604, -0.40778, -0.496882, -1.26604, -0.357114, -0.534458, -1.26604, -0.303008, -0.566888, -1.26604, -0.245984, -0.593858, -1.26604, -0.186591, -0.615109, -1.26604, -0.125402, -0.630437, -1.26604, -0.0630042, -0.639692, -1.26604, -1.57432e-16, -0.642788, -1.26604, 0, -0.5, -1.36603, 0.0490086, -0.497592, -1.36603, 0.0975451, -0.490393, -1.36603, 0.145142, -0.47847, -1.36603, 0.191342, -0.46194, -1.36603, 0.235698, -0.440961, -1.36603, 0.277785, -0.415735, -1.36603, 0.317197, -0.386505, -1.36603, 0.353553, -0.353553, -1.36603, 0.386505, -0.317197, -1.36603, 0.415735, -0.277785, -1.36603, 0.440961, -0.235698, -1.36603, 0.46194, -0.191342, -1.36603, 0.47847, -0.145142, -1.36603, 0.490393, -0.0975451, -1.36603, 0.497592, -0.0490086, -1.36603, 0.5, -3.06152e-17, -1.36603, 0.497592, 0.0490086, -1.36603, 0.490393, 0.0975451, -1.36603, 0.47847, 0.145142, -1.36603, 0.46194, 0.191342, -1.36603, 0.440961, 0.235698, -1.36603, 0.415735, 0.277785, -1.36603, 0.386505, 0.317197, -1.36603, 0.353553, 0.353553, -1.36603, 0.317197, 0.386505, -1.36603, 0.277785, 0.415735, -1.36603, 0.235698, 0.440961, -1.36603, 0.191342, 0.46194, -1.36603, 0.145142, 0.47847, -1.36603, 0.0975451, 0.490393, -1.36603, 0.0490086, 0.497592, -1.36603, 6.12303e-17, 0.5, -1.36603, -0.0490086, 0.497592, -1.36603, -0.0975451, 0.490393, -1.36603, -0.145142, 0.47847, -1.36603, -0.191342, 0.46194, -1.36603, -0.235698, 0.440961, -1.36603, -0.277785, 0.415735, -1.36603, -0.317197, 0.386505, -1.36603, -0.353553, 0.353553, -1.36603, -0.386505, 0.317197, -1.36603, -0.415735, 0.277785, -1.36603, -0.440961, 0.235698, -1.36603, -0.46194, 0.191342, -1.36603, -0.47847, 0.145142, -1.36603, -0.490393, 0.0975451, -1.36603, -0.497592, 0.0490086, -1.36603, -0.5, 9.18455e-17, -1.36603, -0.497592, -0.0490086, -1.36603, -0.490393, -0.0975451, -1.36603, -0.47847, -0.145142, -1.36603, -0.46194, -0.191342, -1.36603, -0.440961, -0.235698, -1.36603, -0.415735, -0.277785, -1.36603, -0.386505, -0.317197, -1.36603, -0.353553, -0.353553, -1.36603, -0.317197, -0.386505, -1.36603, -0.277785, -0.415735, -1.36603, -0.235698, -0.440961, -1.36603, -0.191342, -0.46194, -1.36603, -0.145142, -0.47847, -1.36603, -0.0975451, -0.490393, -1.36603, -0.0490086, -0.497592, -1.36603, -1.22461e-16, -0.5, -1.36603, 0, -0.34202, -1.43969, 0.0335238, -0.340373, -1.43969, 0.0667248, -0.335448, -1.43969, 0.0992832, -0.327293, -1.43969, 0.130885, -0.315985, -1.43969, 0.161227, -0.301635, -1.43969, 0.190016, -0.284379, -1.43969, 0.216975, -0.264385, -1.43969, 0.241845, -0.241845, -1.43969, 0.264385, -0.216975, -1.43969, 0.284379, -0.190016, -1.43969, 0.301635, -0.161227, -1.43969, 0.315985, -0.130885, -1.43969, 0.327293, -0.0992832, -1.43969, 0.335448, -0.0667248, -1.43969, 0.340373, -0.0335238, -1.43969, 0.34202, -2.0942e-17, -1.43969, 0.340373, 0.0335238, -1.43969, 0.335448, 0.0667248, -1.43969, 0.327293, 0.0992832, -1.43969, 0.315985, 0.130885, -1.43969, 0.301635, 0.161227, -1.43969, 0.284379, 0.190016, -1.43969, 0.264385, 0.216975, -1.43969, 0.241845, 0.241845, -1.43969, 0.216975, 0.264385, -1.43969, 0.190016, 0.284379, -1.43969, 0.161227, 0.301635, -1.43969, 0.130885, 0.315985, -1.43969, 0.0992832, 0.327293, -1.43969, 0.0667248, 0.335448, -1.43969, 0.0335238, 0.340373, -1.43969, 4.1884e-17, 0.34202, -1.43969, -0.0335238, 0.340373, -1.43969, -0.0667248, 0.335448, -1.43969, -0.0992832, 0.327293, -1.43969, -0.130885, 0.315985, -1.43969, -0.161227, 0.301635, -1.43969, -0.190016, 0.284379, -1.43969, -0.216975, 0.264385, -1.43969, -0.241845, 0.241845, -1.43969, -0.264385, 0.216975, -1.43969, -0.284379, 0.190016, -1.43969, -0.301635, 0.161227, -1.43969, -0.315985, 0.130885, -1.43969, -0.327293, 0.0992832, -1.43969, -0.335448, 0.0667248, -1.43969, -0.340373, 0.0335238, -1.43969, -0.34202, 6.2826e-17, -1.43969, -0.340373, -0.0335238, -1.43969, -0.335448, -0.0667248, -1.43969, -0.327293, -0.0992832, -1.43969, -0.315985, -0.130885, -1.43969, -0.301635, -0.161227, -1.43969, -0.284379, -0.190016, -1.43969, -0.264385, -0.216975, -1.43969, -0.241845, -0.241845, -1.43969, -0.216975, -0.264385, -1.43969, -0.190016, -0.284379, -1.43969, -0.161227, -0.301635, -1.43969, -0.130885, -0.315985, -1.43969, -0.0992832, -0.327293, -1.43969, -0.0667248, -0.335448, -1.43969, -0.0335238, -0.340373, -1.43969, -8.3768e-17, -0.34202, -1.43969, 0, -0.173648, -1.48481, 0.0170205, -0.172812, -1.48481, 0.0338771, -0.170312, -1.48481, 0.0504074, -0.166171, -1.48481, 0.0664523, -0.16043, -1.48481, 0.0818572, -0.153144, -1.48481, 0.0964738, -0.144383, -1.48481, 0.110161, -0.134232, -1.48481, 0.122788, -0.122788, -1.48481, 0.134232, -0.110161, -1.48481, 0.144383, -0.0964738, -1.48481, 0.153144, -0.0818572, -1.48481, 0.16043, -0.0664523, -1.48481, 0.166171, -0.0504074, -1.48481, 0.170312, -0.0338771, -1.48481, 0.172812, -0.0170205, -1.48481, 0.173648, -1.06325e-17, -1.48481, 0.172812, 0.0170205, -1.48481, 0.170312, 0.0338771, -1.48481, 0.166171, 0.0504074, -1.48481, 0.16043, 0.0664523, -1.48481, 0.153144, 0.0818572, -1.48481, 0.144383, 0.0964738, -1.48481, 0.134232, 0.110161, -1.48481, 0.122788, 0.122788, -1.48481, 0.110161, 0.134232, -1.48481, 0.0964738, 0.144383, -1.48481, 0.0818572, 0.153144, -1.48481, 0.0664523, 0.16043, -1.48481, 0.0504074, 0.166171, -1.48481, 0.0338771, 0.170312, -1.48481, 0.0170205, 0.172812, -1.48481, 2.12651e-17, 0.173648, -1.48481, -0.0170205, 0.172812, -1.48481, -0.0338771, 0.170312, -1.48481, -0.0504074, 0.166171, -1.48481, -0.0664523, 0.16043, -1.48481, -0.0818572, 0.153144, -1.48481, -0.0964738, 0.144383, -1.48481, -0.110161, 0.134232, -1.48481, -0.122788, 0.122788, -1.48481, -0.134232, 0.110161, -1.48481, -0.144383, 0.0964738, -1.48481, -0.153144, 0.0818572, -1.48481, -0.16043, 0.0664523, -1.48481, -0.166171, 0.0504074, -1.48481, -0.170312, 0.0338771, -1.48481, -0.172812, 0.0170205, -1.48481, -0.173648, 3.18976e-17, -1.48481, -0.172812, -0.0170205, -1.48481, -0.170312, -0.0338771, -1.48481, -0.166171, -0.0504074, -1.48481, -0.16043, -0.0664523, -1.48481, -0.153144, -0.0818572, -1.48481, -0.144383, -0.0964738, -1.48481, -0.134232, -0.110161, -1.48481, -0.122788, -0.122788, -1.48481, -0.110161, -0.134232, -1.48481, -0.0964738, -0.144383, -1.48481, -0.0818572, -0.153144, -1.48481, -0.0664523, -0.16043, -1.48481, -0.0504074, -0.166171, -1.48481, -0.0338771, -0.170312, -1.48481, -0.0170205, -0.172812, -1.48481, -4.25301e-17, -0.173648, -1.48481, 0, -1.22461e-16, -1.5, 1.20032e-17, -1.21871e-16, -1.5, 2.38909e-17, -1.20108e-16, -1.5, 3.55484e-17, -1.17188e-16, -1.5, 4.68637e-17, -1.13139e-16, -1.5, 5.77275e-17, -1.08001e-16, -1.5, 6.80355e-17, -1.01822e-16, -1.5, 7.76882e-17, -9.46634e-17, -1.5, 8.65927e-17, -8.65927e-17, -1.5, 9.46634e-17, -7.76882e-17, -1.5, 1.01822e-16, -6.80355e-17, -1.5, 1.08001e-16, -5.77275e-17, -1.5, 1.13139e-16, -4.68637e-17, -1.5, 1.17188e-16, -3.55484e-17, -1.5, 1.20108e-16, -2.38909e-17, -1.5, 1.21871e-16, -1.20032e-17, -1.5, 1.22461e-16, -7.4983e-33, -1.5, 1.21871e-16, 1.20032e-17, -1.5, 1.20108e-16, 2.38909e-17, -1.5, 1.17188e-16, 3.55484e-17, -1.5, 1.13139e-16, 4.68637e-17, -1.5, 1.08001e-16, 5.77275e-17, -1.5, 1.01822e-16, 6.80355e-17, -1.5, 9.46634e-17, 7.76882e-17, -1.5, 8.65927e-17, 8.65927e-17, -1.5, 7.76882e-17, 9.46634e-17, -1.5, 6.80355e-17, 1.01822e-16, -1.5, 5.77275e-17, 1.08001e-16, -1.5, 4.68637e-17, 1.13139e-16, -1.5, 3.55484e-17, 1.17188e-16, -1.5, 2.38909e-17, 1.20108e-16, -1.5, 1.20032e-17, 1.21871e-16, -1.5, 1.49966e-32, 1.22461e-16, -1.5, -1.20032e-17, 1.21871e-16, -1.5, -2.38909e-17, 1.20108e-16, -1.5, -3.55484e-17, 1.17188e-16, -1.5, -4.68637e-17, 1.13139e-16, -1.5, -5.77275e-17, 1.08001e-16, -1.5, -6.80355e-17, 1.01822e-16, -1.5, -7.76882e-17, 9.46634e-17, -1.5, -8.65927e-17, 8.65927e-17, -1.5, -9.46634e-17, 7.76882e-17, -1.5, -1.01822e-16, 6.80355e-17, -1.5, -1.08001e-16, 5.77275e-17, -1.5, -1.13139e-16, 4.68637e-17, -1.5, -1.17188e-16, 3.55484e-17, -1.5, -1.20108e-16, 2.38909e-17, -1.5, -1.21871e-16, 1.20032e-17, -1.5, -1.22461e-16, 2.24949e-32, -1.5, -1.21871e-16, -1.20032e-17, -1.5, -1.20108e-16, -2.38909e-17, -1.5, -1.17188e-16, -3.55484e-17, -1.5, -1.13139e-16, -4.68637e-17, -1.5, -1.08001e-16, -5.77275e-17, -1.5, -1.01822e-16, -6.80355e-17, -1.5, -9.46634e-17, -7.76882e-17, -1.5, -8.65927e-17, -8.65927e-17, -1.5, -7.76882e-17, -9.46634e-17, -1.5, -6.80355e-17, -1.01822e-16, -1.5, -5.77275e-17, -1.08001e-16, -1.5, -4.68637e-17, -1.13139e-16, -1.5, -3.55484e-17, -1.17188e-16, -1.5, -2.38909e-17, -1.20108e-16, -1.5, -1.20032e-17, -1.21871e-16, -1.5, -2.99932e-32, -1.22461e-16, -1.5 )
+
+[node name="Player" type="KinematicBody"]
+script = ExtResource( 2 )
+
+[node name="CameraGimbal" parent="." instance=ExtResource( 1 )]
+transform = Transform( -1, 0, -8.74228e-08, 0, 1, 0, 8.74228e-08, 0, -1, 0, 2.04454, 0 )
+zoom = 0.76
+
+[node name="Pivot" type="Spatial" parent="."]
+
+[node name="Body" type="MeshInstance" parent="Pivot"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 1.51046, 0 )
+visible = false
+mesh = SubResource( 7 )
+material/0 = SubResource( 9 )
+
+[node name="Face" type="MeshInstance" parent="Pivot/Body"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.18878, -0.528266 )
+visible = false
+mesh = SubResource( 10 )
+material/0 = null
+
+[node name="ChestRay" type="RayCast" parent="Pivot" groups=[
+"ClimbRayGroup",
+]]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0 )
+enabled = true
+cast_to = Vector3( 0, 0, 1.7 )
+
+[node name="LeftRay" type="RayCast" parent="Pivot" groups=[
+"ClimbRayGroup",
+]]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0 )
+enabled = true
+cast_to = Vector3( 1.2, 0, 1.2 )
+
+[node name="RightRay" type="RayCast" parent="Pivot" groups=[
+"ClimbRayGroup",
+]]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0 )
+enabled = true
+cast_to = Vector3( -1.2, 0, 1.2 )
+
+[node name="CSGCombiner" type="CSGCombiner" parent="Pivot"]
+use_collision = true
+
+[node name="LeftEye" type="CSGSphere" parent="Pivot/CSGCombiner"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0.441907, 2.11046, 0.64195 )
+radius = 0.1
+material = SubResource( 1 )
+
+[node name="RightEye" type="CSGSphere" parent="Pivot/CSGCombiner"]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, -0.443384, 2.11046, 0.64195 )
+radius = 0.1
+material = SubResource( 2 )
+
+[node name="Head" type="CSGSphere" parent="Pivot/CSGCombiner"]
+transform = Transform( 0.7, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.01173, 0 )
+material = SubResource( 6 )
+
+[node name="Body" type="CSGSphere" parent="Pivot/CSGCombiner"]
+transform = Transform( 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.00166, 0 )
+material = SubResource( 6 )
+
+[node name="Tail" type="CSGTorus" parent="Pivot/CSGCombiner"]
+transform = Transform( -4.37114e-08, 1, 0, -0.938626, -4.10286e-08, -0.344938, -0.344938, -1.50777e-08, 0.938626, 0, 1.03784, -1.43813 )
+inner_radius = 0.10744
+outer_radius = 1.07512
+material = SubResource( 4 )
+
+[node name="TailNeg" type="CSGSphere" parent="Pivot/CSGCombiner/Tail"]
+transform = Transform( 1, 0, 0, 3.10862e-15, 1, 0, 0, -8.88178e-16, 1, 0.757538, 3.3113e-08, 0.0701536 )
+operation = 2
+material = SubResource( 13 )
+
+[node name="LeftEar" type="CSGPolygon" parent="Pivot/CSGCombiner"]
+transform = Transform( -0.114235, -0.383341, 0, 0.383341, -0.114235, 0, 0, 0, 0.4, 0.587717, 2.69985, 0.0957366 )
+polygon = PoolVector2Array( 0, 0, -0.317417, 0.288088, 0.729877, 1.20606, 1, 0 )
+material = SubResource( 15 )
+
+[node name="RightEar" type="CSGPolygon" parent="Pivot/CSGCombiner"]
+transform = Transform( 0.0900348, 0.389735, 2.16712e-08, 0.389735, -0.0900348, 2.74444e-08, 3.16181e-08, 1.49377e-08, -0.4, -0.563894, 2.69922, -0.28935 )
+polygon = PoolVector2Array( 0, 0, -0.317417, 0.288088, 0.729877, 1.20606, 1, 0 )
+material = SubResource( 15 )
+
+[node name="Nose" type="CSGPolygon" parent="Pivot/CSGCombiner"]
+transform = Transform( 0.132291, -0.149997, 0, 0.147203, 0.129827, 0.0384222, -0.028816, -0.0254146, 0.196275, -0.00781929, 1.84971, 1.02837 )
+polygon = PoolVector2Array( 0.224379, 0.161952, 0.299557, 0.929839, 0.507148, 0.4823, 0.972993, 0.198538 )
+material = SubResource( 17 )
+
+[node name="DirectionalLight" type="DirectionalLight" parent="."]
+transform = Transform( 0.707107, -0.5, 0.5, 0, 0.707107, 0.707107, -0.707107, -0.5, 0.5, 0, 5.49811, 0 )
+
+[node name="CollisionShape2" type="CollisionShape" parent="."]
+transform = Transform( 1, 0, 0, 0, -4.37114e-08, -1, 0, 1, -4.37114e-08, 0, 1.51046, 0 )
+visible = false
+shape = SubResource( 11 )
