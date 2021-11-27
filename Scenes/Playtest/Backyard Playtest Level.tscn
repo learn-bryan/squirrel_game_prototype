@@ -662,7 +662,7 @@ radius = 0.553859
 height = 19.7203
 
 [node name="Player" parent="." instance=ExtResource( 3 )]
-transform = Transform( -0.198688, 0, 0.151733, 0, 0.25, 0, -0.151733, 0, -0.198688, 2.79316, 7.50243, 3.80324 )
+transform = Transform( -0.198688, 0, 0.151733, 0, 0.25, 0, -0.151733, 0, -0.198688, 2.79316, 8.0579, 3.80324 )
 MOVE_SPEED = 10.0
 JUMP_SPEED = 10.0
 
