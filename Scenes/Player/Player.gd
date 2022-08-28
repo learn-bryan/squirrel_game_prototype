@@ -87,13 +87,17 @@ func apply_movement(direction, delta):
 #			velocity.y -= gravity * delta
 		else: 				# Air Movement
 			jump_pressed = false
-			if gliding:
+			if gliding and velocity.y <= 0: # if falling & gliding
 				velocity.x = direction.x * MOVE_SPEED * move_weight
 				velocity.z = direction.z * MOVE_SPEED * move_weight
-				velocity.y -= (gravity*.3) * delta # reduce gravity (compensate)
+#				velocity.y -= (gravity*.3) * delta # reduce gravity (compensate)
+				velocity.y = (gravity*-1) * delta # static reduced gravity
 				gliding = false
 			else: # free fall
 				velocity.y -= gravity * delta
+				# directional movement in air
+				velocity.x = direction.x * MOVE_SPEED * move_weight
+				velocity.z = direction.z * MOVE_SPEED * move_weight
 		
 #		# General Movement
 #		velocity.x = direction.x * MOVE_SPEED * move_weight
@@ -108,7 +112,7 @@ func apply_movement(direction, delta):
 		#velocity = move_and_slide_with_snap(velocity, sn, sn)
 		#velocity = move_and_slide_with_snap(velocity, sn, Vector3.UP)
 		#velocity = move_and_slide(velocity, sn)
-		velocity = move_and_slide_with_snap(velocity, snap_ground_vec, ground_up_vec, false, 4, PI, false)
+		velocity = move_and_slide_with_snap(velocity, snap_ground_vec, ground_up_vec, false, 4, PI-0.1, false)
 	else:
 		#velocity = move_and_slide(velocity, Vector3.UP)
 		ground_up_vec = Vector3.UP
@@ -119,7 +123,7 @@ func apply_movement(direction, delta):
 			ground_up_vec = get_floor_surface_normal()
 			snap_ground_vec = -3*ground_up_vec # snap to standing surface
 		
-		velocity = move_and_slide_with_snap(velocity, snap_ground_vec, ground_up_vec, true, 4, PI, false)
+		velocity = move_and_slide_with_snap(velocity, snap_ground_vec, ground_up_vec, true, 4, PI/3, false)
 	
 #	var target = transform.origin + direction * MOVE_SPEED * move_weight * delta
 #	# bind position within fense area
